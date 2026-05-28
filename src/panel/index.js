@@ -180,10 +180,31 @@ function GeoTagrPanel() {
 					return;
 				}
 				const result = results[0];
-				setLat(parseFloat(result.lat));
-				setLng(parseFloat(result.lon));
-				setPlace(result.name ?? result.display_name ?? '');
+				const resultLat = parseFloat(result.lat);
+				const resultLng = parseFloat(result.lon);
+				setLat(resultLat);
+				setLng(resultLng);
 				setAddress(result.display_name ?? '');
+
+				// Reverse geocode to pick up the POI name at these coordinates.
+				// A forward address search returns the address, not the named
+				// place — the reverse endpoint fills that gap.
+				return fetch(
+					`${NOMINATIM_REVERSE}&lat=${resultLat}&lon=${resultLng}`,
+					{ headers: { 'User-Agent': USER_AGENT } }
+				)
+					.then((r) => r.json())
+					.then((data) => {
+						setPlace(
+							data.name ||
+								result.name ||
+								result.display_name ||
+								''
+						);
+					})
+					.catch(() => {
+						setPlace(result.name || result.display_name || '');
+					});
 			})
 			.catch(() =>
 				setError(
