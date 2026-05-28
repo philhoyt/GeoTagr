@@ -104,13 +104,20 @@ function nominatimReverse(lat, lng) {
 		}));
 }
 
-// ─── Google Maps Geocoding API ────────────────────────────────────────────────
+// ─── Google Places API ───────────────────────────────────────────────────────
+// Text Search returns name + address in one call.
+// Nearby Search is used for reverse geocoding to find what's at a location.
+// Geocoding API is used as fallback for formatted address in reverse.
 
-const GOOGLE_BASE = 'https://maps.googleapis.com/maps/api/geocode/json';
+const GOOGLE_TEXTSEARCH =
+	'https://maps.googleapis.com/maps/api/place/textsearch/json';
+const GOOGLE_NEARBYSEARCH =
+	'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+const GOOGLE_GEOCODE = 'https://maps.googleapis.com/maps/api/geocode/json';
 
 function googleForward(query, apiKey) {
 	return fetch(
-		`${GOOGLE_BASE}?address=${encodeURIComponent(query)}&key=${apiKey}`
+		`${GOOGLE_TEXTSEARCH}?query=${encodeURIComponent(query)}&key=${apiKey}`
 	)
 		.then((r) => r.json())
 		.then((data) => {
@@ -121,28 +128,26 @@ function googleForward(query, apiKey) {
 			return {
 				lat: result.geometry.location.lat,
 				lng: result.geometry.location.lng,
-				// Google Geocoding API does not return business names.
-				name: '',
+				name: result.name ?? '',
 				address: result.formatted_address ?? '',
 			};
 		});
 }
 
 function googleReverse(lat, lng, apiKey) {
-	return fetch(`${GOOGLE_BASE}?latlng=${lat},${lng}&key=${apiKey}`)
-		.then((r) => r.json())
-		.then((data) => {
-			const result = data.results?.[0];
-			if (!result) {
-				return null;
-			}
-			return {
-				lat,
-				lng,
-				name: '',
-				address: result.formatted_address ?? '',
-			};
-		});
+	// Nearby Search finds the POI name; Geocoding gives the formatted address.
+	const nearbyUrl = `${GOOGLE_NEARBYSEARCH}?location=${lat},${lng}&radius=100&key=${apiKey}`;
+	const geocodeUrl = `${GOOGLE_GEOCODE}?latlng=${lat},${lng}&key=${apiKey}`;
+
+	return Promise.all([
+		fetch(nearbyUrl).then((r) => r.json()),
+		fetch(geocodeUrl).then((r) => r.json()),
+	]).then(([nearby, geocode]) => ({
+		lat,
+		lng,
+		name: nearby.results?.[0]?.name ?? '',
+		address: geocode.results?.[0]?.formatted_address ?? '',
+	}));
 }
 
 // ─── Mapbox Geocoding API (v5) ────────────────────────────────────────────────

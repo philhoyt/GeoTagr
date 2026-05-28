@@ -232,7 +232,7 @@ class Settings {
 				);
 				?>
 					</li>
-				<li><?php esc_html_e( 'Enable the Geocoding API for your project under APIs &amp; Services › Library.', 'geotagr' ); ?></li>
+				<li><?php esc_html_e( 'Enable the Places API (for name lookup) and Geocoding API (for address lookup) under APIs &amp; Services › Library.', 'geotagr' ); ?></li>
 				<li>
 				<?php
 				echo wp_kses(
