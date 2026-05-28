@@ -180,14 +180,33 @@ function GeoTagrPanel() {
 					return;
 				}
 				const result = results[0];
-				setLat(parseFloat(result.lat));
-				setLng(parseFloat(result.lon));
+				const resultLat = parseFloat(result.lat);
+				const resultLng = parseFloat(result.lon);
+				setLat(resultLat);
+				setLng(resultLng);
 				setAddress(result.display_name ?? '');
-				// Only set place name when the result itself is a named place
-				// (e.g. "Aut-O-Rama Twin Drive-In"). A plain street address
-				// search returns an empty name — leave it blank so the user
-				// can fill it in rather than showing the road name.
-				setPlace(result.name ?? '');
+
+				// If the forward search already found a named place, use it.
+				// Otherwise reverse geocode — but only accept the name if the
+				// result isn't a road (category "highway"), which would give us
+				// the street name instead of the business at that address.
+				if (result.name) {
+					setPlace(result.name);
+					return;
+				}
+				return fetch(
+					`${NOMINATIM_REVERSE}&lat=${resultLat}&lon=${resultLng}`,
+					{ headers: { 'User-Agent': USER_AGENT } }
+				)
+					.then((r) => r.json())
+					.then((data) => {
+						setPlace(
+							data.name && data.category !== 'highway'
+								? data.name
+								: ''
+						);
+					})
+					.catch(() => setPlace(''));
 			})
 			.catch(() =>
 				setError(

@@ -146,12 +146,34 @@ document.addEventListener('DOMContentLoaded', () => {
 					if (addressInput) {
 						addressInput.value = result.display_name ?? '';
 					}
-					// Only populate place name when the result is a named
-					// place. A plain street address search returns an empty
-					// name — leave it blank rather than showing the road name.
-					if (placeInput) {
-						placeInput.value = result.name ?? '';
+
+					// If the forward search found a named place, use it.
+					// Otherwise reverse geocode — but skip highway results,
+					// which would give us the road name instead of the POI.
+					if (result.name) {
+						if (placeInput) {
+							placeInput.value = result.name;
+						}
+						return;
 					}
+					return fetch(
+						`${NOMINATIM_REVERSE}&lat=${result.lat}&lon=${result.lon}`,
+						{ headers: { 'User-Agent': USER_AGENT } }
+					)
+						.then((r) => r.json())
+						.then((data) => {
+							if (placeInput) {
+								placeInput.value =
+									data.name && data.category !== 'highway'
+										? data.name
+										: '';
+							}
+						})
+						.catch(() => {
+							if (placeInput) {
+								placeInput.value = '';
+							}
+						});
 				})
 				.catch(() =>
 					setError('Address lookup failed. Please try again.')
