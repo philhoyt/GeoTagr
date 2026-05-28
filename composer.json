@@ -1,0 +1,31 @@
+{
+    "name": "philhoyt/geotagr",
+    "description": "A WordPress plugin for geotagging content",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Phil Hoyt",
+            "email": "hoytph@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require-dev": {
+        "squizlabs/php_codesniffer": "*",
+        "wp-coding-standards/wpcs": "*",
+        "phpstan/phpstan": "^2.2",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "phpunit/phpunit": "^13.1"
+    },
+    "scripts": {
+        "lint":     "./vendor/bin/phpcs",
+        "lint:fix": "./vendor/bin/phpcbf",
+        "analyse":  "./vendor/bin/phpstan analyse",
+        "test":     "./vendor/bin/phpunit"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

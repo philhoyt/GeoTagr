@@ -1,0 +1,30 @@
+{
+  "name": "geotagr",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start",
+    "lint:js": "wp-scripts lint-js",
+    "lint:css": "wp-scripts lint-style",
+    "test:unit": "wp-scripts test-unit-js",
+    "test:e2e": "wp-scripts test-playwright",
+    "env:start": "wp-env start",
+    "env:stop": "wp-env stop",
+    "env:clean": "wp-env clean",
+    "test:php": "wp-env run tests-phpunit -- phpunit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@wordpress/env": "^11.7.0",
+    "@wordpress/eslint-plugin": "^25.3.0",
+    "@wordpress/scripts": "^32.3.0",
+    "@wordpress/stylelint-config": "^23.39.0"
+  }
+}
