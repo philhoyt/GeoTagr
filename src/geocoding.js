@@ -162,8 +162,13 @@ function mapboxForward(query, apiKey) {
 			return {
 				lat: feature.center[1],
 				lng: feature.center[0],
-				// Only use text as name when result is a POI, not an address.
-				name: feature.place_type?.[0] === 'poi' ? feature.text : '',
+				// Use text as name when the result is any POI type (poi,
+				// poi.landmark, etc.) rather than a street address or place.
+				name: feature.place_type?.some(
+					(t) => t === 'poi' || t.startsWith('poi.')
+				)
+					? (feature.text ?? '')
+					: '',
 				address: feature.place_name ?? '',
 			};
 		});
@@ -182,7 +187,11 @@ function mapboxReverse(lat, lng, apiKey) {
 			return {
 				lat,
 				lng,
-				name: feature.place_type?.[0] === 'poi' ? feature.text : '',
+				name: feature.place_type?.some(
+					(t) => t === 'poi' || t.startsWith('poi.')
+				)
+					? (feature.text ?? '')
+					: '',
 				address: feature.place_name ?? '',
 			};
 		});
