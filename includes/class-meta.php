@@ -57,7 +57,9 @@ class Meta {
 						'type'              => $config['type'],
 						'single'            => true,
 						'show_in_rest'      => true,
-						'sanitize_callback' => $config['sanitize'],
+						'sanitize_callback' => 'number' === $config['type']
+								? static fn( $value ): float => (float) $value
+								: $config['sanitize'],
 						'auth_callback'     => static function (): bool {
 							return current_user_can( 'edit_posts' );
 						},

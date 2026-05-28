@@ -54,6 +54,25 @@ class Metabox {
 		?>
 		<div class="geo-tagr-metabox">
 			<p>
+				<label for="geo_tagr_address"><?php esc_html_e( 'Full address', 'geotagr' ); ?></label><br>
+				<input
+					type="text"
+					id="geo_tagr_address"
+					name="geo_tagr_address"
+					value="<?php echo esc_attr( $address ); ?>"
+					style="width:100%"
+				>
+			</p>
+			<p>
+				<button type="button" id="geo-tagr-use-location" class="button">
+					<?php esc_html_e( 'Use my location', 'geotagr' ); ?>
+				</button>
+				<button type="button" id="geo-tagr-search-address" class="button" style="margin-left:4px">
+					<?php esc_html_e( 'Search on Address', 'geotagr' ); ?>
+				</button>
+				<span id="geo-tagr-location-error" style="color:#d63638;display:none;margin-left:8px;"></span>
+			</p>
+			<p>
 				<label for="geo_tagr_lat"><?php esc_html_e( 'Latitude', 'geotagr' ); ?></label><br>
 				<input
 					type="number"
@@ -84,22 +103,6 @@ class Metabox {
 					value="<?php echo esc_attr( $place ); ?>"
 					style="width:100%"
 				>
-			</p>
-			<p>
-				<label for="geo_tagr_address"><?php esc_html_e( 'Full address', 'geotagr' ); ?></label><br>
-				<input
-					type="text"
-					id="geo_tagr_address"
-					name="geo_tagr_address"
-					value="<?php echo esc_attr( $address ); ?>"
-					style="width:100%"
-				>
-			</p>
-			<p>
-				<button type="button" id="geo-tagr-use-location" class="button">
-					<?php esc_html_e( 'Use my location', 'geotagr' ); ?>
-				</button>
-				<span id="geo-tagr-location-error" style="color:#d63638;display:none;margin-left:8px;"></span>
 			</p>
 		</div>
 		<?php

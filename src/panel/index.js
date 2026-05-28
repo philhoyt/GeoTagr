@@ -24,17 +24,35 @@ L.Icon.Default.mergeOptions({
 const NOMINATIM_REVERSE =
 	'https://nominatim.openstreetmap.org/reverse?format=jsonv2';
 const NOMINATIM_SEARCH =
-	'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5';
+	'https://nominatim.openstreetmap.org/search?format=jsonv2';
 const USER_AGENT = `GeoTagr/${window.geoTagrData?.version ?? '1.0.0'}`;
-const DEBOUNCE_MS = 300;
 
-function useDebounce(value, delay) {
-	const [debounced, setDebounced] = useState(value);
-	useEffect(() => {
-		const id = setTimeout(() => setDebounced(value), delay);
-		return () => clearTimeout(id);
-	}, [value, delay]);
-	return debounced;
+// Nominatim doesn't index suite/unit numbers. Strip them and retry if needed.
+const UNIT_PATTERN = /,?\s*(ste|suite|apt|apartment|unit|#)\s*[\w-]+/gi;
+
+function stripUnit(address) {
+	return address
+		.replace(UNIT_PATTERN, '')
+		.replace(/\s{2,}/g, ' ')
+		.trim();
+}
+
+function nominatimSearch(query) {
+	const url = (q) => `${NOMINATIM_SEARCH}&limit=1&q=${encodeURIComponent(q)}`;
+	const opts = { headers: { 'User-Agent': USER_AGENT } };
+
+	return fetch(url(query), opts)
+		.then((r) => r.json())
+		.then((results) => {
+			if (results.length) {
+				return results;
+			}
+			const stripped = stripUnit(query);
+			if (stripped === query) {
+				return [];
+			}
+			return fetch(url(stripped), opts).then((r) => r.json());
+		});
 }
 
 function GeoTagrPanel() {
@@ -56,17 +74,12 @@ function GeoTagrPanel() {
 		'_geo_tagr_address'
 	);
 
-	const [geoError, setGeoError] = useState('');
-	const [geoLoading, setGeoLoading] = useState(false);
-	const [searchQuery, setSearchQuery] = useState('');
-	const [searchResults, setSearchResults] = useState([]);
-	const [searchLoading, setSearchLoading] = useState(false);
+	const [error, setError] = useState('');
+	const [loading, setLoading] = useState(false);
 
-	const mapRef = useRef(null);
 	const mapInstanceRef = useRef(null);
 	const markerRef = useRef(null);
 
-	// Initialise Leaflet map once the container div mounts.
 	const mapContainerRef = useCallback((node) => {
 		if (!node || mapInstanceRef.current) {
 			return;
@@ -86,10 +99,8 @@ function GeoTagrPanel() {
 		}
 
 		mapInstanceRef.current = map;
-		mapRef.current = node;
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-	// Update map marker when coordinates change.
 	useEffect(() => {
 		const map = mapInstanceRef.current;
 		if (!map) {
@@ -108,7 +119,6 @@ function GeoTagrPanel() {
 		}
 	}, [lat, lng]);
 
-	// Destroy map on unmount.
 	useEffect(() => {
 		return () => {
 			if (mapInstanceRef.current) {
@@ -119,32 +129,15 @@ function GeoTagrPanel() {
 		};
 	}, []);
 
-	// Debounced address search.
-	const debouncedQuery = useDebounce(searchQuery, DEBOUNCE_MS);
-	useEffect(() => {
-		if (!debouncedQuery.trim()) {
-			setSearchResults([]);
-			return;
-		}
-		setSearchLoading(true);
-		fetch(`${NOMINATIM_SEARCH}&q=${encodeURIComponent(debouncedQuery)}`, {
-			headers: { 'User-Agent': USER_AGENT },
-		})
-			.then((r) => r.json())
-			.then((results) => setSearchResults(results))
-			.catch(() => setSearchResults([]))
-			.finally(() => setSearchLoading(false));
-	}, [debouncedQuery]);
-
 	function handleUseMyLocation() {
 		if (!navigator.geolocation) {
-			setGeoError(
+			setError(
 				__('Geolocation is not supported by your browser.', 'geotagr')
 			);
 			return;
 		}
-		setGeoLoading(true);
-		setGeoError('');
+		setLoading(true);
+		setError('');
 		navigator.geolocation.getCurrentPosition(
 			(position) => {
 				const { latitude, longitude } = position.coords;
@@ -159,28 +152,45 @@ function GeoTagrPanel() {
 						setAddress(data.display_name ?? '');
 					})
 					.catch(() => {})
-					.finally(() => setGeoLoading(false));
+					.finally(() => setLoading(false));
 			},
 			(err) => {
-				setGeoLoading(false);
-				setGeoError(
+				setLoading(false);
+				setError(
 					err.message ||
-						__(
-							'Could not retrieve your location. Please enter it manually.',
-							'geotagr'
-						)
+						__('Could not retrieve your location.', 'geotagr')
 				);
 			}
 		);
 	}
 
-	function handleSelectResult(result) {
-		setLat(parseFloat(result.lat));
-		setLng(parseFloat(result.lon));
-		setPlace(result.name ?? result.display_name ?? '');
-		setAddress(result.display_name ?? '');
-		setSearchQuery('');
-		setSearchResults([]);
+	function handleSearchOnAddress() {
+		if (!address?.trim()) {
+			setError(__('Enter an address to search.', 'geotagr'));
+			return;
+		}
+		setLoading(true);
+		setError('');
+		nominatimSearch(address)
+			.then((results) => {
+				if (!results.length) {
+					setError(
+						__('No results found for that address.', 'geotagr')
+					);
+					return;
+				}
+				const result = results[0];
+				setLat(parseFloat(result.lat));
+				setLng(parseFloat(result.lon));
+				setPlace(result.name ?? result.display_name ?? '');
+				setAddress(result.display_name ?? '');
+			})
+			.catch(() =>
+				setError(
+					__('Address lookup failed. Please try again.', 'geotagr')
+				)
+			)
+			.finally(() => setLoading(false));
 	}
 
 	return (
@@ -188,55 +198,45 @@ function GeoTagrPanel() {
 			name="geo-tagr-panel"
 			title={__('GeoTagr', 'geotagr')}
 		>
-			{geoError && (
+			{error && (
 				<Notice
 					status="error"
 					isDismissible={true}
-					onRemove={() => setGeoError('')}
+					onRemove={() => setError('')}
 				>
-					{geoError}
+					{error}
 				</Notice>
 			)}
 
-			<Button
-				variant="secondary"
-				onClick={handleUseMyLocation}
-				disabled={geoLoading}
-				className="geo-tagr-location-btn"
-			>
-				{geoLoading ? (
-					<>
-						<Spinner />
-						{__('Detecting…', 'geotagr')}
-					</>
-				) : (
-					__('Use my location', 'geotagr')
-				)}
-			</Button>
+			<TextControl
+				label={__('Full address', 'geotagr')}
+				value={address ?? ''}
+				onChange={setAddress}
+				placeholder={__('Enter an address…', 'geotagr')}
+			/>
 
-			<div className="geo-tagr-search">
-				<TextControl
-					label={__('Search address', 'geotagr')}
-					value={searchQuery}
-					onChange={setSearchQuery}
-					placeholder={__('Start typing an address…', 'geotagr')}
-				/>
-				{searchLoading && <Spinner />}
-				{searchResults.length > 0 && (
-					<ul className="geo-tagr-results">
-						{searchResults.map((result) => (
-							<li key={result.place_id}>
-								<button
-									type="button"
-									className="geo-tagr-result-btn"
-									onClick={() => handleSelectResult(result)}
-								>
-									{result.display_name}
-								</button>
-							</li>
-						))}
-					</ul>
-				)}
+			<div className="geo-tagr-actions">
+				<Button
+					variant="secondary"
+					onClick={handleUseMyLocation}
+					disabled={loading}
+				>
+					{loading ? (
+						<>
+							<Spinner />
+							{__('Working…', 'geotagr')}
+						</>
+					) : (
+						__('Use my location', 'geotagr')
+					)}
+				</Button>
+				<Button
+					variant="secondary"
+					onClick={handleSearchOnAddress}
+					disabled={loading}
+				>
+					{__('Search on Address', 'geotagr')}
+				</Button>
 			</div>
 
 			<TextControl
@@ -257,11 +257,6 @@ function GeoTagrPanel() {
 				label={__('Place name', 'geotagr')}
 				value={place ?? ''}
 				onChange={setPlace}
-			/>
-			<TextControl
-				label={__('Full address', 'geotagr')}
-				value={address ?? ''}
-				onChange={setAddress}
 			/>
 
 			<div
