@@ -19,3 +19,18 @@ $meta_keys = array(
 foreach ( $meta_keys as $key ) {
 	delete_post_meta_by_key( $key );
 }
+
+// Remove all geo_tagr_location taxonomy terms and their term meta.
+$terms = get_terms(
+	array(
+		'taxonomy'   => 'geo_tagr_location',
+		'hide_empty' => false,
+		'fields'     => 'ids',
+	)
+);
+
+if ( is_array( $terms ) ) {
+	foreach ( $terms as $term_id ) {
+		wp_delete_term( (int) $term_id, 'geo_tagr_location' );
+	}
+}
