@@ -23,13 +23,22 @@ class Settings {
 	private const SECTION = 'geotagr_main';
 
 	/**
+	 * Geocoding providers that accept an API key.
+	 *
+	 * @var string[]
+	 */
+	private const KEYED_PROVIDERS = array( 'google', 'mapbox' );
+
+	/**
 	 * Defaults used when the option has never been saved.
 	 *
-	 * @var array{allowed_post_types: string[], taxonomy_public: bool}
+	 * @var array{allowed_post_types: string[], taxonomy_public: bool, geocoding_provider: string, geocoding_api_key: string}
 	 */
 	private const DEFAULTS = array(
 		'allowed_post_types' => array( 'post' ),
 		'taxonomy_public'    => false,
+		'geocoding_provider' => 'nominatim',
+		'geocoding_api_key'  => '',
 	);
 
 	/**
@@ -72,6 +81,22 @@ class Settings {
 			'taxonomy_public',
 			__( 'Location taxonomy', 'geotagr' ),
 			array( $this, 'render_taxonomy_public_field' ),
+			self::PAGE,
+			self::SECTION
+		);
+
+		add_settings_field(
+			'geocoding_provider',
+			__( 'Geocoding provider', 'geotagr' ),
+			array( $this, 'render_provider_field' ),
+			self::PAGE,
+			self::SECTION
+		);
+
+		add_settings_field(
+			'geocoding_api_key',
+			__( 'API key', 'geotagr' ),
+			array( $this, 'render_api_key_field' ),
 			self::PAGE,
 			self::SECTION
 		);
@@ -152,10 +177,47 @@ class Settings {
 	}
 
 	/**
+	 * Render the geocoding provider select field.
+	 */
+	public function render_provider_field(): void {
+		$saved   = self::get( 'geocoding_provider', 'nominatim' );
+		$options = array(
+			'nominatim' => __( 'Nominatim (OpenStreetMap, no key required)', 'geotagr' ),
+			'google'    => __( 'Google Maps Geocoding API', 'geotagr' ),
+			'mapbox'    => __( 'Mapbox Geocoding API', 'geotagr' ),
+		);
+
+		printf( '<select name="%s[geocoding_provider]">', esc_attr( self::OPTION ) );
+		foreach ( $options as $value => $label ) {
+			printf(
+				'<option value="%s"%s>%s</option>',
+				esc_attr( $value ),
+				selected( $saved, $value, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'Google and Mapbox provide better coverage and POI name lookup but require an API key.', 'geotagr' ) . '</p>';
+	}
+
+	/**
+	 * Render the API key text field.
+	 */
+	public function render_api_key_field(): void {
+		$saved = self::get( 'geocoding_api_key', '' );
+		printf(
+			'<input type="text" name="%s[geocoding_api_key]" value="%s" class="regular-text">',
+			esc_attr( self::OPTION ),
+			esc_attr( $saved )
+		);
+		echo '<p class="description">' . esc_html__( 'Required when using Google or Mapbox. Restrict this key by HTTP referrer to your site domain. Stored in plain text — keep it out of version control.', 'geotagr' ) . '</p>';
+	}
+
+	/**
 	 * Sanitize and validate the incoming settings array.
 	 *
 	 * @param mixed $input Raw POST input.
-	 * @return array{allowed_post_types: string[], taxonomy_public: bool}
+	 * @return array{allowed_post_types: string[], taxonomy_public: bool, geocoding_provider: string, geocoding_api_key: string}
 	 */
 	public function sanitize( mixed $input ): array {
 		$input = is_array( $input ) ? $input : array();
@@ -168,9 +230,18 @@ class Settings {
 		// An unchecked checkbox sends nothing — treat absence as false.
 		$taxonomy_public = ! empty( $input['taxonomy_public'] );
 
+		// Validate provider against known list; fall back to nominatim.
+		$valid_providers    = array_merge( array( 'nominatim' ), self::KEYED_PROVIDERS );
+		$submitted_prov     = isset( $input['geocoding_provider'] ) ? (string) $input['geocoding_provider'] : 'nominatim';
+		$geocoding_provider = in_array( $submitted_prov, $valid_providers, true ) ? $submitted_prov : 'nominatim';
+
+		$geocoding_api_key = sanitize_text_field( $input['geocoding_api_key'] ?? '' );
+
 		return array(
 			'allowed_post_types' => $allowed_types,
 			'taxonomy_public'    => $taxonomy_public,
+			'geocoding_provider' => $geocoding_provider,
+			'geocoding_api_key'  => $geocoding_api_key,
 		);
 	}
 }
