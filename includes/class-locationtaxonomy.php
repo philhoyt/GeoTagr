@@ -34,6 +34,17 @@ class LocationTaxonomy {
 			self::TAXONOMY,
 			(array) $post_types,
 			array(
+				'labels'             => array(
+					'name'          => __( 'Geo Tags', 'geotagr' ),
+					'singular_name' => __( 'Geo Tag', 'geotagr' ),
+					'search_items'  => __( 'Search Geo Tags', 'geotagr' ),
+					'all_items'     => __( 'All Geo Tags', 'geotagr' ),
+					'edit_item'     => __( 'Edit Geo Tag', 'geotagr' ),
+					'update_item'   => __( 'Update Geo Tag', 'geotagr' ),
+					'add_new_item'  => __( 'Add New Geo Tag', 'geotagr' ),
+					'new_item_name' => __( 'New Geo Tag Name', 'geotagr' ),
+					'menu_name'     => __( 'Geo Tags', 'geotagr' ),
+				),
 				'public'             => $is_public,
 				'publicly_queryable' => $is_public,
 				'hierarchical'       => false,
@@ -119,11 +130,12 @@ class LocationTaxonomy {
 		}
 
 		$slug = self::slug_for( $meta['lat'], $meta['lng'] );
+		$name = ! empty( $meta['place'] ) ? $meta['place'] : ( ! empty( $meta['address'] ) ? $meta['address'] : $slug );
 		$term = get_term_by( 'slug', $slug, self::TAXONOMY );
 
 		if ( ! $term instanceof \WP_Term ) {
 			$result = wp_insert_term(
-				$slug,
+				$name,
 				self::TAXONOMY,
 				array( 'slug' => $slug )
 			);
@@ -134,6 +146,12 @@ class LocationTaxonomy {
 
 			$term = get_term( $result['term_id'], self::TAXONOMY );
 
+			if ( ! $term instanceof \WP_Term ) {
+				return;
+			}
+		} elseif ( $term->name !== $name ) {
+			wp_update_term( $term->term_id, self::TAXONOMY, array( 'name' => $name ) );
+			$term = get_term( $term->term_id, self::TAXONOMY );
 			if ( ! $term instanceof \WP_Term ) {
 				return;
 			}
