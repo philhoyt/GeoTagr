@@ -29,3 +29,4 @@ Thumbs.db
 
 # Claude Code — local feature planning notes, not part of the codebase
 plans/
+*.zip
