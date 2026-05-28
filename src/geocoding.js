@@ -104,50 +104,30 @@ function nominatimReverse(lat, lng) {
 		}));
 }
 
-// ─── Google Places API ───────────────────────────────────────────────────────
-// Text Search returns name + address in one call.
-// Nearby Search is used for reverse geocoding to find what's at a location.
-// Geocoding API is used as fallback for formatted address in reverse.
+// ─── Google (server-side proxy) ──────────────────────────────────────────────
+// Google Places API blocks CORS, so all Google geocoding goes through a
+// WordPress REST endpoint that makes the request server-side.
 
-const GOOGLE_TEXTSEARCH =
-	'https://maps.googleapis.com/maps/api/place/textsearch/json';
-const GOOGLE_NEARBYSEARCH =
-	'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
-const GOOGLE_GEOCODE = 'https://maps.googleapis.com/maps/api/geocode/json';
-
-function googleForward(query, apiKey) {
-	return fetch(
-		`${GOOGLE_TEXTSEARCH}?query=${encodeURIComponent(query)}&key=${apiKey}`
-	)
+function googleProxy(params) {
+	const data = window.geoTagrData ?? {};
+	const url = new URL(
+		data.proxyUrl ?? '/wp-json/geotagr/v1/geocode',
+		window.location.origin
+	);
+	Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+	return fetch(url.toString(), {
+		headers: { 'X-WP-Nonce': data.nonce ?? '' },
+	})
 		.then((r) => r.json())
-		.then((data) => {
-			const result = data.results?.[0];
-			if (!result) {
-				return null;
-			}
-			return {
-				lat: result.geometry.location.lat,
-				lng: result.geometry.location.lng,
-				name: result.name ?? '',
-				address: result.formatted_address ?? '',
-			};
-		});
+		.then((result) => result ?? null);
 }
 
-function googleReverse(lat, lng, apiKey) {
-	// Nearby Search finds the POI name; Geocoding gives the formatted address.
-	const nearbyUrl = `${GOOGLE_NEARBYSEARCH}?location=${lat},${lng}&radius=100&key=${apiKey}`;
-	const geocodeUrl = `${GOOGLE_GEOCODE}?latlng=${lat},${lng}&key=${apiKey}`;
+function googleForward(query) {
+	return googleProxy({ type: 'forward', query });
+}
 
-	return Promise.all([
-		fetch(nearbyUrl).then((r) => r.json()),
-		fetch(geocodeUrl).then((r) => r.json()),
-	]).then(([nearby, geocode]) => ({
-		lat,
-		lng,
-		name: nearby.results?.[0]?.name ?? '',
-		address: geocode.results?.[0]?.formatted_address ?? '',
-	}));
+function googleReverse(lat, lng) {
+	return googleProxy({ type: 'reverse', lat, lng });
 }
 
 // ─── Mapbox Geocoding API (v5) ────────────────────────────────────────────────
@@ -216,7 +196,7 @@ export function geocodeForward(query) {
 	const { provider, apiKey } = config();
 	switch (provider) {
 		case 'google':
-			return googleForward(normalised, apiKey);
+			return googleForward(normalised);
 		case 'mapbox':
 			return mapboxForward(normalised, apiKey);
 		default:
@@ -236,7 +216,7 @@ export function geocodeReverse(lat, lng) {
 	const { provider, apiKey } = config();
 	switch (provider) {
 		case 'google':
-			return googleReverse(lat, lng, apiKey);
+			return googleReverse(lat, lng);
 		case 'mapbox':
 			return mapboxReverse(lat, lng, apiKey);
 		default:

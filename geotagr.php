@@ -28,6 +28,7 @@ define( 'GEOTAGR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-meta.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-settings.php';
+require_once GEOTAGR_PLUGIN_DIR . 'includes/class-geocodeproxy.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-locationtaxonomy.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-metabox.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-blockeditor.php';
