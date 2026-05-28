@@ -3,7 +3,7 @@
  * Plugin Name: GeoTagr
  * Plugin URI:  https://github.com/philhoyt/geotagr
  * Description: Attach geographic location metadata to any post.
- * Version:     0.4.0
+ * Version:     0.5.0
  * Requires at least: 6.7
  * Requires PHP: 8.2
  * Author:      Phil Hoyt
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GEOTAGR_VERSION', '0.4.0' );
+define( 'GEOTAGR_VERSION', '0.5.0' );
 define( 'GEOTAGR_PLUGIN_FILE', __FILE__ );
 define( 'GEOTAGR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GEOTAGR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -37,6 +37,7 @@ $geotagr_update_checker = PucFactory::buildUpdateChecker(
 );
 $geotagr_update_checker->getVcsApi()->enableReleaseAssets();
 
+require_once GEOTAGR_PLUGIN_DIR . 'includes/class-locationnameblock.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-meta.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-settings.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-geocodeproxy.php';
