@@ -180,31 +180,14 @@ function GeoTagrPanel() {
 					return;
 				}
 				const result = results[0];
-				const resultLat = parseFloat(result.lat);
-				const resultLng = parseFloat(result.lon);
-				setLat(resultLat);
-				setLng(resultLng);
+				setLat(parseFloat(result.lat));
+				setLng(parseFloat(result.lon));
 				setAddress(result.display_name ?? '');
-
-				// Reverse geocode to pick up the POI name at these coordinates.
-				// A forward address search returns the address, not the named
-				// place — the reverse endpoint fills that gap.
-				return fetch(
-					`${NOMINATIM_REVERSE}&lat=${resultLat}&lon=${resultLng}`,
-					{ headers: { 'User-Agent': USER_AGENT } }
-				)
-					.then((r) => r.json())
-					.then((data) => {
-						setPlace(
-							data.name ||
-								result.name ||
-								result.display_name ||
-								''
-						);
-					})
-					.catch(() => {
-						setPlace(result.name || result.display_name || '');
-					});
+				// Only set place name when the result itself is a named place
+				// (e.g. "Aut-O-Rama Twin Drive-In"). A plain street address
+				// search returns an empty name — leave it blank so the user
+				// can fill it in rather than showing the road name.
+				setPlace(result.name ?? '');
 			})
 			.catch(() =>
 				setError(

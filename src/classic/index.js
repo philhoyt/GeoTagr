@@ -136,41 +136,22 @@ document.addEventListener('DOMContentLoaded', () => {
 						return;
 					}
 					const result = results[0];
-					const lat = result.lat;
-					const lng = result.lon;
 
 					if (latInput) {
-						latInput.value = lat;
+						latInput.value = result.lat;
 					}
 					if (lngInput) {
-						lngInput.value = lng;
+						lngInput.value = result.lon;
 					}
 					if (addressInput) {
 						addressInput.value = result.display_name ?? '';
 					}
-
-					// Reverse geocode to pick up the POI name at these
-					// coordinates — forward address search returns the address,
-					// not the named place at that location.
-					return fetch(`${NOMINATIM_REVERSE}&lat=${lat}&lon=${lng}`, {
-						headers: { 'User-Agent': USER_AGENT },
-					})
-						.then((r) => r.json())
-						.then((data) => {
-							if (placeInput) {
-								placeInput.value =
-									data.name ||
-									result.name ||
-									result.display_name ||
-									'';
-							}
-						})
-						.catch(() => {
-							if (placeInput) {
-								placeInput.value =
-									result.name || result.display_name || '';
-							}
-						});
+					// Only populate place name when the result is a named
+					// place. A plain street address search returns an empty
+					// name — leave it blank rather than showing the road name.
+					if (placeInput) {
+						placeInput.value = result.name ?? '';
+					}
 				})
 				.catch(() =>
 					setError('Address lookup failed. Please try again.')
