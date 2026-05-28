@@ -54,7 +54,9 @@ class BlockEditor {
 			'geo-tagr-classic',
 			'geoTagrData',
 			array(
-				'version' => GEOTAGR_VERSION,
+				'version'           => GEOTAGR_VERSION,
+				'geocodingProvider' => Settings::get( 'geocoding_provider', 'nominatim' ),
+				'geocodingApiKey'   => Settings::get( 'geocoding_api_key', '' ),
 			)
 		);
 	}
@@ -90,7 +92,9 @@ class BlockEditor {
 			'geo-tagr-panel',
 			'geoTagrData',
 			array(
-				'version' => GEOTAGR_VERSION,
+				'version'           => GEOTAGR_VERSION,
+				'geocodingProvider' => Settings::get( 'geocoding_provider', 'nominatim' ),
+				'geocodingApiKey'   => Settings::get( 'geocoding_api_key', '' ),
 			)
 		);
 	}
