@@ -8,6 +8,9 @@
 # WordPress environment
 /.wp-env/
 
+# PHPUnit cache
+.phpunit.result.cache
+
 # Composer lock (keep composer.lock for plugins)
 # composer.lock
 

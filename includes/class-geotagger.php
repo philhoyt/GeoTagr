@@ -23,10 +23,13 @@ class GeoTagger {
 	 */
 	public function init(): void {
 		$meta         = new Meta();
+		$location     = new LocationTaxonomy();
 		$block_editor = new BlockEditor();
 		$metabox      = new Metabox();
 
 		add_action( 'init', array( $meta, 'register' ) );
+		add_action( 'init', array( $location, 'register' ) );
+		add_action( 'geo_tagr_meta_saved', array( $location, 'sync' ), 10, 2 );
 		add_action( 'enqueue_block_editor_assets', array( $block_editor, 'enqueue' ) );
 		add_action( 'admin_enqueue_scripts', array( $block_editor, 'enqueue_classic' ) );
 		add_action( 'add_meta_boxes', array( $metabox, 'register' ) );

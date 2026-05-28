@@ -9,6 +9,7 @@
 		<testsuite name="unit">
 			<file>./tests/phpunit/unit/Test_Meta.php</file>
 			<file>./tests/phpunit/unit/Test_Metabox.php</file>
+			<file>./tests/phpunit/unit/Test_Location_Taxonomy.php</file>
 		</testsuite>
 		<testsuite name="integration">
 			<directory suffix=".php">./tests/phpunit</directory>
