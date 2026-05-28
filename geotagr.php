@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GeoTagr
  * Plugin URI:  https://github.com/philhoyt/geotagr
- * Description: A WordPress plugin for geotagging content.
+ * Description: Attach geographic location metadata to any post.
  * Version:     0.1.0
  * Requires at least: 6.7
  * Requires PHP: 8.2
@@ -25,3 +25,21 @@ define( 'GEOTAGR_VERSION', '0.1.0' );
 define( 'GEOTAGR_PLUGIN_FILE', __FILE__ );
 define( 'GEOTAGR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GEOTAGR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+require_once GEOTAGR_PLUGIN_DIR . 'includes/class-meta.php';
+require_once GEOTAGR_PLUGIN_DIR . 'includes/class-metabox.php';
+require_once GEOTAGR_PLUGIN_DIR . 'includes/class-blockeditor.php';
+require_once GEOTAGR_PLUGIN_DIR . 'includes/class-geotagger.php';
+
+/**
+ * Returns geo meta for a post. Safe to call without knowing if GeoTagr is active
+ * — callers should wrap in function_exists( 'geo_tagr_get_post_meta' ).
+ *
+ * @param int $post_id Post ID.
+ * @return array{lat: float|null, lng: float|null, place: string, address: string}|null
+ */
+function geo_tagr_get_post_meta( int $post_id ): ?array {
+	return \GeoTagr\Meta::get( $post_id );
+}
+
+( new \GeoTagr\GeoTagger() )->init();
