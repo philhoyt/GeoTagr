@@ -37,6 +37,7 @@ $geotagr_update_checker = PucFactory::buildUpdateChecker(
 );
 $geotagr_update_checker->getVcsApi()->enableReleaseAssets();
 
+require_once GEOTAGR_PLUGIN_DIR . 'includes/class-locationnameblock.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-meta.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-settings.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-geocodeproxy.php';
