@@ -20,12 +20,33 @@ class LocationNameBlock {
 
 	/**
 	 * Register the block type using block.json metadata.
+	 *
+	 * The editor script is registered manually from the compiled build output
+	 * because the webpack entry produces build/location-name.js (flat), while
+	 * block.json's "file:./index.js" would resolve to the raw JSX source.
 	 */
 	public function register(): void {
+		$asset_file = GEOTAGR_PLUGIN_DIR . 'build/location-name.asset.php';
+
+		if ( ! file_exists( $asset_file ) ) {
+			return;
+		}
+
+		$asset = require $asset_file;
+
+		wp_register_script(
+			'geotagr-location-name-editor',
+			GEOTAGR_PLUGIN_URL . 'build/location-name.js',
+			$asset['dependencies'],
+			$asset['version'],
+			true
+		);
+
 		register_block_type_from_metadata(
 			GEOTAGR_PLUGIN_DIR . 'src/blocks/location-name',
 			array(
-				'render_callback' => array( $this, 'render' ),
+				'editor_script_handles' => array( 'geotagr-location-name-editor' ),
+				'render_callback'       => array( $this, 'render' ),
 			)
 		);
 	}

@@ -8,6 +8,5 @@
 	"description": "Display the location name attached to a post.",
 	"keywords": [ "location", "place", "geo" ],
 	"textdomain": "geotagr",
-	"editorScript": "file:./index.js",
 	"usesContext": [ "postId", "postType" ]
 }
