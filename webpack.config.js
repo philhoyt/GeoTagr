@@ -5,5 +5,6 @@ module.exports = {
 	entry: {
 		panel: './src/panel/index.js',
 		classic: './src/classic/index.js',
+		'location-name': './src/blocks/location-name/index.js',
 	},
 };

@@ -32,6 +32,8 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@wordpress/block-editor": "^15.20.0",
+    "@wordpress/blocks": "^15.20.0",
     "@wordpress/components": "^34.0.0",
     "@wordpress/core-data": "^7.47.0",
     "@wordpress/data": "^10.47.0",
