@@ -34,3 +34,5 @@ if ( is_array( $terms ) ) {
 		wp_delete_term( (int) $term_id, 'geo_tagr_location' );
 	}
 }
+
+delete_option( 'geotagr_settings' );
