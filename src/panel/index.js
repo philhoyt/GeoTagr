@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { geocodeForward, geocodeReverse } from '../geocoding';
 
 // Fix Leaflet's broken default icon path when bundled with webpack.
 delete L.Icon.Default.prototype._getIconUrl;
@@ -20,40 +21,6 @@ L.Icon.Default.mergeOptions({
 	shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url)
 		.href,
 });
-
-const NOMINATIM_REVERSE =
-	'https://nominatim.openstreetmap.org/reverse?format=jsonv2';
-const NOMINATIM_SEARCH =
-	'https://nominatim.openstreetmap.org/search?format=jsonv2';
-const USER_AGENT = `GeoTagr/${window.geoTagrData?.version ?? '1.0.0'}`;
-
-// Nominatim doesn't index suite/unit numbers. Strip them and retry if needed.
-const UNIT_PATTERN = /,?\s*(ste|suite|apt|apartment|unit|#)\s*[\w-]+/gi;
-
-function stripUnit(address) {
-	return address
-		.replace(UNIT_PATTERN, '')
-		.replace(/\s{2,}/g, ' ')
-		.trim();
-}
-
-function nominatimSearch(query) {
-	const url = (q) => `${NOMINATIM_SEARCH}&limit=1&q=${encodeURIComponent(q)}`;
-	const opts = { headers: { 'User-Agent': USER_AGENT } };
-
-	return fetch(url(query), opts)
-		.then((r) => r.json())
-		.then((results) => {
-			if (results.length) {
-				return results;
-			}
-			const stripped = stripUnit(query);
-			if (stripped === query) {
-				return [];
-			}
-			return fetch(url(stripped), opts).then((r) => r.json());
-		});
-}
 
 function GeoTagrPanel() {
 	const postType = useSelect(
@@ -143,13 +110,12 @@ function GeoTagrPanel() {
 				const { latitude, longitude } = position.coords;
 				setLat(latitude);
 				setLng(longitude);
-				fetch(`${NOMINATIM_REVERSE}&lat=${latitude}&lon=${longitude}`, {
-					headers: { 'User-Agent': USER_AGENT },
-				})
-					.then((r) => r.json())
-					.then((data) => {
-						setPlace(data.name ?? data.display_name ?? '');
-						setAddress(data.display_name ?? '');
+				geocodeReverse(latitude, longitude)
+					.then((result) => {
+						if (result) {
+							setPlace(result.name);
+							setAddress(result.address);
+						}
 					})
 					.catch(() => {})
 					.finally(() => setLoading(false));
@@ -171,42 +137,18 @@ function GeoTagrPanel() {
 		}
 		setLoading(true);
 		setError('');
-		nominatimSearch(address)
-			.then((results) => {
-				if (!results.length) {
+		geocodeForward(address)
+			.then((result) => {
+				if (!result) {
 					setError(
 						__('No results found for that address.', 'geotagr')
 					);
 					return;
 				}
-				const result = results[0];
-				const resultLat = parseFloat(result.lat);
-				const resultLng = parseFloat(result.lon);
-				setLat(resultLat);
-				setLng(resultLng);
-				setAddress(result.display_name ?? '');
-
-				// If the forward search already found a named place, use it.
-				// Otherwise reverse geocode — but only accept the name if the
-				// result isn't a road (category "highway"), which would give us
-				// the street name instead of the business at that address.
-				if (result.name) {
-					setPlace(result.name);
-					return;
-				}
-				return fetch(
-					`${NOMINATIM_REVERSE}&lat=${resultLat}&lon=${resultLng}`,
-					{ headers: { 'User-Agent': USER_AGENT } }
-				)
-					.then((r) => r.json())
-					.then((data) => {
-						setPlace(
-							data.name && data.category !== 'highway'
-								? data.name
-								: ''
-						);
-					})
-					.catch(() => setPlace(''));
+				setLat(result.lat);
+				setLng(result.lng);
+				setPlace(result.name);
+				setAddress(result.address);
 			})
 			.catch(() =>
 				setError(

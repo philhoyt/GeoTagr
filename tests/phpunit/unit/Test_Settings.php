@@ -91,4 +91,61 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$this->assertFalse( $result['taxonomy_public'] );
 	}
+
+	/**
+	 * Unknown provider value falls back to nominatim.
+	 */
+	public function test_sanitize_rejects_unknown_provider(): void {
+		$settings = new Settings();
+
+		$result = $settings->sanitize(
+			array(
+				'allowed_post_types' => array( 'post' ),
+				'geocoding_provider' => 'fakeprovider',
+			)
+		);
+
+		$this->assertSame( 'nominatim', $result['geocoding_provider'] );
+	}
+
+	/**
+	 * Known provider values pass through sanitize unchanged.
+	 */
+	public function test_sanitize_preserves_valid_provider(): void {
+		$settings = new Settings();
+
+		foreach ( array( 'nominatim', 'google', 'mapbox' ) as $provider ) {
+			$result = $settings->sanitize(
+				array(
+					'allowed_post_types' => array( 'post' ),
+					'geocoding_provider' => $provider,
+				)
+			);
+			$this->assertSame( $provider, $result['geocoding_provider'], "Failed for provider: {$provider}" );
+		}
+	}
+
+	/**
+	 * HTML tags are stripped from the API key value.
+	 */
+	public function test_sanitize_strips_api_key_html(): void {
+		$settings = new Settings();
+
+		$result = $settings->sanitize(
+			array(
+				'allowed_post_types' => array( 'post' ),
+				'geocoding_api_key'  => '<b>mykey</b>123',
+			)
+		);
+
+		// sanitize_text_field strips tags but keeps inner text for non-script elements.
+		$this->assertSame( 'mykey123', $result['geocoding_api_key'] );
+	}
+
+	/**
+	 * Default provider is nominatim when no option is saved.
+	 */
+	public function test_get_returns_default_provider(): void {
+		$this->assertSame( 'nominatim', Settings::get( 'geocoding_provider' ) );
+	}
 }

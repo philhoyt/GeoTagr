@@ -23,13 +23,22 @@ class Settings {
 	private const SECTION = 'geotagr_main';
 
 	/**
+	 * Geocoding providers that accept an API key.
+	 *
+	 * @var string[]
+	 */
+	private const KEYED_PROVIDERS = array( 'google', 'mapbox' );
+
+	/**
 	 * Defaults used when the option has never been saved.
 	 *
-	 * @var array{allowed_post_types: string[], taxonomy_public: bool}
+	 * @var array{allowed_post_types: string[], taxonomy_public: bool, geocoding_provider: string, geocoding_api_key: string}
 	 */
 	private const DEFAULTS = array(
 		'allowed_post_types' => array( 'post' ),
 		'taxonomy_public'    => false,
+		'geocoding_provider' => 'nominatim',
+		'geocoding_api_key'  => '',
 	);
 
 	/**
@@ -72,6 +81,22 @@ class Settings {
 			'taxonomy_public',
 			__( 'Location taxonomy', 'geotagr' ),
 			array( $this, 'render_taxonomy_public_field' ),
+			self::PAGE,
+			self::SECTION
+		);
+
+		add_settings_field(
+			'geocoding_provider',
+			__( 'Geocoding provider', 'geotagr' ),
+			array( $this, 'render_provider_field' ),
+			self::PAGE,
+			self::SECTION
+		);
+
+		add_settings_field(
+			'geocoding_api_key',
+			__( 'API key', 'geotagr' ),
+			array( $this, 'render_api_key_field' ),
 			self::PAGE,
 			self::SECTION
 		);
@@ -152,10 +177,137 @@ class Settings {
 	}
 
 	/**
+	 * Render the geocoding provider select field.
+	 */
+	public function render_provider_field(): void {
+		$saved   = self::get( 'geocoding_provider', 'nominatim' );
+		$options = array(
+			'nominatim' => __( 'Nominatim (OpenStreetMap, no key required)', 'geotagr' ),
+			'google'    => __( 'Google Maps Geocoding API', 'geotagr' ),
+			'mapbox'    => __( 'Mapbox Geocoding API', 'geotagr' ),
+		);
+
+		printf( '<select id="geotagr-provider" name="%s[geocoding_provider]">', esc_attr( self::OPTION ) );
+		foreach ( $options as $value => $label ) {
+			printf(
+				'<option value="%s"%s>%s</option>',
+				esc_attr( $value ),
+				selected( $saved, $value, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'Google and Mapbox provide better coverage and POI name lookup but require an API key.', 'geotagr' ) . '</p>';
+	}
+
+	/**
+	 * Render the API key text field with per-provider instructions.
+	 */
+	public function render_api_key_field(): void {
+		$saved = self::get( 'geocoding_api_key', '' );
+		printf(
+			'<input type="text" id="geotagr-api-key" name="%s[geocoding_api_key]" value="%s" class="regular-text">',
+			esc_attr( self::OPTION ),
+			esc_attr( $saved )
+		);
+		?>
+		<p class="description">
+			<?php esc_html_e( 'Required when using Google or Mapbox. Stored in plain text and output on admin pages — restrict the key by HTTP referrer to your site domain.', 'geotagr' ); ?>
+		</p>
+
+		<div id="geotagr-key-instructions-google" class="geotagr-key-instructions" style="display:none;margin-top:8px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1;">
+			<strong><?php esc_html_e( 'Getting a Google Maps API key:', 'geotagr' ); ?></strong>
+			<ol style="margin:6px 0 0 1.2em;padding:0;">
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> and create or select a project.', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li><?php esc_html_e( 'Enable the Places API (for name lookup) and Geocoding API (for address lookup) under APIs &amp; Services › Library.', 'geotagr' ); ?></li>
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Create a key under <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">APIs &amp; Services › Credentials</a>.', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li><?php esc_html_e( 'Restrict the key to HTTP referrers and add your site\'s domain.', 'geotagr' ); ?></li>
+			</ol>
+		</div>
+
+		<div id="geotagr-key-instructions-mapbox" class="geotagr-key-instructions" style="display:none;margin-top:8px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1;">
+			<strong><?php esc_html_e( 'Getting a Mapbox access token:', 'geotagr' ); ?></strong>
+			<ol style="margin:6px 0 0 1.2em;padding:0;">
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Sign up or log in at <a href="https://account.mapbox.com/" target="_blank" rel="noopener">mapbox.com</a>.', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Go to <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener">Access Tokens</a> and click "Create a token".', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li><?php esc_html_e( 'Under "Token restrictions", add your site\'s URL to the Allowed URLs list.', 'geotagr' ); ?></li>
+				<li><?php esc_html_e( 'Ensure the token has the "styles:tiles" and "geocoding" scopes (the default public token works for geocoding).', 'geotagr' ); ?></li>
+			</ol>
+		</div>
+
+		<script>
+		( function () {
+			var select = document.getElementById( 'geotagr-provider' );
+			var panels = document.querySelectorAll( '.geotagr-key-instructions' );
+			function update() {
+				panels.forEach( function ( el ) { el.style.display = 'none'; } );
+				var target = document.getElementById( 'geotagr-key-instructions-' + select.value );
+				if ( target ) { target.style.display = 'block'; }
+			}
+			select.addEventListener( 'change', update );
+			update();
+		} )();
+		</script>
+		<?php
+	}
+
+	/**
 	 * Sanitize and validate the incoming settings array.
 	 *
 	 * @param mixed $input Raw POST input.
-	 * @return array{allowed_post_types: string[], taxonomy_public: bool}
+	 * @return array{allowed_post_types: string[], taxonomy_public: bool, geocoding_provider: string, geocoding_api_key: string}
 	 */
 	public function sanitize( mixed $input ): array {
 		$input = is_array( $input ) ? $input : array();
@@ -168,9 +320,18 @@ class Settings {
 		// An unchecked checkbox sends nothing — treat absence as false.
 		$taxonomy_public = ! empty( $input['taxonomy_public'] );
 
+		// Validate provider against known list; fall back to nominatim.
+		$valid_providers    = array_merge( array( 'nominatim' ), self::KEYED_PROVIDERS );
+		$submitted_prov     = isset( $input['geocoding_provider'] ) ? (string) $input['geocoding_provider'] : 'nominatim';
+		$geocoding_provider = in_array( $submitted_prov, $valid_providers, true ) ? $submitted_prov : 'nominatim';
+
+		$geocoding_api_key = sanitize_text_field( $input['geocoding_api_key'] ?? '' );
+
 		return array(
 			'allowed_post_types' => $allowed_types,
 			'taxonomy_public'    => $taxonomy_public,
+			'geocoding_provider' => $geocoding_provider,
+			'geocoding_api_key'  => $geocoding_api_key,
 		);
 	}
 }

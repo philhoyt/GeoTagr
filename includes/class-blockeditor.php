@@ -54,7 +54,11 @@ class BlockEditor {
 			'geo-tagr-classic',
 			'geoTagrData',
 			array(
-				'version' => GEOTAGR_VERSION,
+				'version'           => GEOTAGR_VERSION,
+				'geocodingProvider' => Settings::get( 'geocoding_provider', 'nominatim' ),
+				'geocodingApiKey'   => Settings::get( 'geocoding_api_key', '' ),
+				'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
+				'nonce'             => wp_create_nonce( 'wp_rest' ),
 			)
 		);
 	}
@@ -90,7 +94,11 @@ class BlockEditor {
 			'geo-tagr-panel',
 			'geoTagrData',
 			array(
-				'version' => GEOTAGR_VERSION,
+				'version'           => GEOTAGR_VERSION,
+				'geocodingProvider' => Settings::get( 'geocoding_provider', 'nominatim' ),
+				'geocodingApiKey'   => Settings::get( 'geocoding_api_key', '' ),
+				'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
+				'nonce'             => wp_create_nonce( 'wp_rest' ),
 			)
 		);
 	}

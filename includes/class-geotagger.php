@@ -23,12 +23,14 @@ class GeoTagger {
 	 */
 	public function init(): void {
 		$settings     = new Settings();
+		$proxy        = new GeocodeProxy();
 		$meta         = new Meta();
 		$location     = new LocationTaxonomy();
 		$block_editor = new BlockEditor();
 		$metabox      = new Metabox();
 
 		add_action( 'admin_menu', array( $settings, 'register' ) );
+		add_action( 'rest_api_init', array( $proxy, 'register' ) );
 
 		add_filter(
 			'geo_tagr_allowed_post_types',
