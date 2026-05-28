@@ -136,19 +136,44 @@ document.addEventListener('DOMContentLoaded', () => {
 						return;
 					}
 					const result = results[0];
+
 					if (latInput) {
 						latInput.value = result.lat;
 					}
 					if (lngInput) {
 						lngInput.value = result.lon;
 					}
-					if (placeInput) {
-						placeInput.value =
-							result.name ?? result.display_name ?? '';
-					}
 					if (addressInput) {
 						addressInput.value = result.display_name ?? '';
 					}
+
+					// If the forward search found a named place, use it.
+					// Otherwise reverse geocode — but skip highway results,
+					// which would give us the road name instead of the POI.
+					if (result.name) {
+						if (placeInput) {
+							placeInput.value = result.name;
+						}
+						return;
+					}
+					return fetch(
+						`${NOMINATIM_REVERSE}&lat=${result.lat}&lon=${result.lon}`,
+						{ headers: { 'User-Agent': USER_AGENT } }
+					)
+						.then((r) => r.json())
+						.then((data) => {
+							if (placeInput) {
+								placeInput.value =
+									data.name && data.category !== 'highway'
+										? data.name
+										: '';
+							}
+						})
+						.catch(() => {
+							if (placeInput) {
+								placeInput.value = '';
+							}
+						});
 				})
 				.catch(() =>
 					setError('Address lookup failed. Please try again.')
