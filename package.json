@@ -15,16 +15,24 @@
     "env:start": "wp-env start",
     "env:stop": "wp-env stop",
     "env:clean": "wp-env clean",
-    "test:php": "wp-env run tests-phpunit -- phpunit"
+    "test:php": "wp-env run tests-cli --env-cwd wp-content/plugins/geotagr -- vendor/bin/phpunit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@wordpress/components": "^34.0.0",
+    "@wordpress/core-data": "^7.47.0",
+    "@wordpress/data": "^10.47.0",
+    "@wordpress/editor": "^14.47.0",
+    "@wordpress/element": "^7.0.0",
     "@wordpress/env": "^11.7.0",
     "@wordpress/eslint-plugin": "^25.3.0",
+    "@wordpress/i18n": "^6.20.0",
+    "@wordpress/plugins": "^7.47.0",
     "@wordpress/scripts": "^32.3.0",
-    "@wordpress/stylelint-config": "^23.39.0"
+    "@wordpress/stylelint-config": "^23.39.0",
+    "leaflet": "^1.9.4"
   }
 }
