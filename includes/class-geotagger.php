@@ -28,6 +28,7 @@ class GeoTagger {
 
 		add_action( 'init', array( $meta, 'register' ) );
 		add_action( 'enqueue_block_editor_assets', array( $block_editor, 'enqueue' ) );
+		add_action( 'admin_enqueue_scripts', array( $block_editor, 'enqueue_classic' ) );
 		add_action( 'add_meta_boxes', array( $metabox, 'register' ) );
 		add_action( 'save_post', array( $metabox, 'save' ) );
 	}

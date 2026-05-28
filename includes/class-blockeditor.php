@@ -19,6 +19,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 class BlockEditor {
 
 	/**
+	 * Enqueue the classic metabox script on classic editor post screens.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_classic( string $hook ): void {
+		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
+			return;
+		}
+
+		$asset_file = GEOTAGR_PLUGIN_DIR . 'build/classic.asset.php';
+
+		if ( ! file_exists( $asset_file ) ) {
+			return;
+		}
+
+		$asset = require $asset_file;
+
+		wp_enqueue_script(
+			'geo-tagr-classic',
+			GEOTAGR_PLUGIN_URL . 'build/classic.js',
+			$asset['dependencies'],
+			$asset['version'],
+			true
+		);
+
+		wp_localize_script(
+			'geo-tagr-classic',
+			'geoTagrData',
+			array(
+				'version' => GEOTAGR_VERSION,
+			)
+		);
+	}
+
+	/**
 	 * Enqueue block editor assets.
 	 */
 	public function enqueue(): void {
