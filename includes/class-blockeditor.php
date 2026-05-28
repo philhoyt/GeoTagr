@@ -28,6 +28,12 @@ class BlockEditor {
 			return;
 		}
 
+		$post_type     = get_post_type();
+		$allowed_types = apply_filters( 'geo_tagr_allowed_post_types', array( 'post' ) );
+		if ( $post_type && ! in_array( $post_type, (array) $allowed_types, true ) ) {
+			return;
+		}
+
 		$asset_file = GEOTAGR_PLUGIN_DIR . 'build/classic.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
