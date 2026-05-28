@@ -2,6 +2,7 @@
 	"extends": [
 		"@wordpress/stylelint-config"
 	],
+	"ignoreFiles": ["lib/**", "build/**", "node_modules/**"],
 	"rules": {
 		"no-descending-specificity": null,
 		"selector-class-pattern": [

@@ -10,6 +10,9 @@
         }
     ],
     "minimum-stability": "stable",
+    "require": {
+        "yahnis-elsts/plugin-update-checker": "^5.3"
+    },
     "require-dev": {
         "squizlabs/php_codesniffer": "*",
         "wp-coding-standards/wpcs": "*",
@@ -19,6 +22,9 @@
         "yoast/phpunit-polyfills": "^2.0"
     },
     "scripts": {
+        "copy-puc":        "rsync -a --delete vendor/yahnis-elsts/plugin-update-checker/ lib/plugin-update-checker/",
+        "post-install-cmd": "@copy-puc",
+        "post-update-cmd":  "@copy-puc",
         "lint":     "./vendor/bin/phpcs",
         "lint:fix": "./vendor/bin/phpcbf",
         "analyse":  "./vendor/bin/phpstan analyse",

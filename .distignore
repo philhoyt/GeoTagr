@@ -11,6 +11,9 @@
 phpstan.neon
 phpunit.xml
 node_modules
+vendor
+src
+webpack.config.js
 tests
 plans
 *.asset.php

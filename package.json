@@ -1,14 +1,24 @@
 {
   "name": "geotagr",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "main": "index.js",
+  "files": [
+    "build",
+    "includes",
+    "languages",
+    "lib",
+    "geotagr.php",
+    "readme.txt",
+    "uninstall.php"
+  ],
   "directories": {
     "test": "tests"
   },
   "scripts": {
     "build": "wp-scripts build",
+    "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start",
-    "lint:js": "wp-scripts lint-js",
+    "lint:js": "wp-scripts lint-js src/",
     "lint:css": "wp-scripts lint-style",
     "test:unit": "wp-scripts test-unit-js",
     "test:e2e": "wp-scripts test-playwright",

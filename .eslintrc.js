@@ -1,5 +1,6 @@
 module.exports = {
 	extends: ['plugin:@wordpress/eslint-plugin/recommended'],
+	ignorePatterns: ['lib/', 'build/', 'node_modules/'],
 	settings: {
 		// Tell the import plugin that @wordpress/* packages are WordPress externals.
 		'import/resolver': {
