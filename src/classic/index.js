@@ -1,37 +1,6 @@
-/* Classic editor metabox — geolocation + Nominatim geocoding. */
+/* Classic editor metabox — geolocation + geocoding. */
 
-const NOMINATIM_REVERSE =
-	'https://nominatim.openstreetmap.org/reverse?format=jsonv2';
-const NOMINATIM_SEARCH =
-	'https://nominatim.openstreetmap.org/search?format=jsonv2';
-const USER_AGENT = `GeoTagr/${window.geoTagrData?.version ?? '1.0.0'}`;
-
-const UNIT_PATTERN = /,?\s*(ste|suite|apt|apartment|unit|#)\s*[\w-]+/gi;
-
-function stripUnit(address) {
-	return address
-		.replace(UNIT_PATTERN, '')
-		.replace(/\s{2,}/g, ' ')
-		.trim();
-}
-
-function nominatimSearch(query) {
-	const url = (q) => `${NOMINATIM_SEARCH}&limit=1&q=${encodeURIComponent(q)}`;
-	const opts = { headers: { 'User-Agent': USER_AGENT } };
-
-	return fetch(url(query), opts)
-		.then((r) => r.json())
-		.then((results) => {
-			if (results.length) {
-				return results;
-			}
-			const stripped = stripUnit(query);
-			if (stripped === query) {
-				return [];
-			}
-			return fetch(url(stripped), opts).then((r) => r.json());
-		});
-}
+import { geocodeForward, geocodeReverse } from '../geocoding';
 
 document.addEventListener('DOMContentLoaded', () => {
 	const useLocationBtn = document.getElementById('geo-tagr-use-location');
@@ -86,18 +55,15 @@ document.addEventListener('DOMContentLoaded', () => {
 						lngInput.value = longitude;
 					}
 
-					fetch(
-						`${NOMINATIM_REVERSE}&lat=${latitude}&lon=${longitude}`,
-						{ headers: { 'User-Agent': USER_AGENT } }
-					)
-						.then((r) => r.json())
-						.then((data) => {
-							if (placeInput) {
-								placeInput.value =
-									data.name ?? data.display_name ?? '';
-							}
-							if (addressInput) {
-								addressInput.value = data.display_name ?? '';
+					geocodeReverse(latitude, longitude)
+						.then((result) => {
+							if (result) {
+								if (placeInput) {
+									placeInput.value = result.name;
+								}
+								if (addressInput) {
+									addressInput.value = result.address;
+								}
 							}
 						})
 						.catch(() => {})
@@ -129,51 +95,24 @@ document.addEventListener('DOMContentLoaded', () => {
 			setBusy(true);
 			searchAddressBtn.textContent = 'Searching…';
 
-			nominatimSearch(query)
-				.then((results) => {
-					if (!results.length) {
+			geocodeForward(query)
+				.then((result) => {
+					if (!result) {
 						setError('No results found for that address.');
 						return;
 					}
-					const result = results[0];
-
 					if (latInput) {
 						latInput.value = result.lat;
 					}
 					if (lngInput) {
-						lngInput.value = result.lon;
+						lngInput.value = result.lng;
+					}
+					if (placeInput) {
+						placeInput.value = result.name;
 					}
 					if (addressInput) {
-						addressInput.value = result.display_name ?? '';
+						addressInput.value = result.address;
 					}
-
-					// If the forward search found a named place, use it.
-					// Otherwise reverse geocode — but skip highway results,
-					// which would give us the road name instead of the POI.
-					if (result.name) {
-						if (placeInput) {
-							placeInput.value = result.name;
-						}
-						return;
-					}
-					return fetch(
-						`${NOMINATIM_REVERSE}&lat=${result.lat}&lon=${result.lon}`,
-						{ headers: { 'User-Agent': USER_AGENT } }
-					)
-						.then((r) => r.json())
-						.then((data) => {
-							if (placeInput) {
-								placeInput.value =
-									data.name && data.category !== 'highway'
-										? data.name
-										: '';
-							}
-						})
-						.catch(() => {
-							if (placeInput) {
-								placeInput.value = '';
-							}
-						});
 				})
 				.catch(() =>
 					setError('Address lookup failed. Please try again.')
