@@ -187,7 +187,7 @@ class Settings {
 			'mapbox'    => __( 'Mapbox Geocoding API', 'geotagr' ),
 		);
 
-		printf( '<select name="%s[geocoding_provider]">', esc_attr( self::OPTION ) );
+		printf( '<select id="geotagr-provider" name="%s[geocoding_provider]">', esc_attr( self::OPTION ) );
 		foreach ( $options as $value => $label ) {
 			printf(
 				'<option value="%s"%s>%s</option>',
@@ -201,16 +201,106 @@ class Settings {
 	}
 
 	/**
-	 * Render the API key text field.
+	 * Render the API key text field with per-provider instructions.
 	 */
 	public function render_api_key_field(): void {
 		$saved = self::get( 'geocoding_api_key', '' );
 		printf(
-			'<input type="text" name="%s[geocoding_api_key]" value="%s" class="regular-text">',
+			'<input type="text" id="geotagr-api-key" name="%s[geocoding_api_key]" value="%s" class="regular-text">',
 			esc_attr( self::OPTION ),
 			esc_attr( $saved )
 		);
-		echo '<p class="description">' . esc_html__( 'Required when using Google or Mapbox. Restrict this key by HTTP referrer to your site domain. Stored in plain text — keep it out of version control.', 'geotagr' ) . '</p>';
+		?>
+		<p class="description">
+			<?php esc_html_e( 'Required when using Google or Mapbox. Stored in plain text and output on admin pages — restrict the key by HTTP referrer to your site domain.', 'geotagr' ); ?>
+		</p>
+
+		<div id="geotagr-key-instructions-google" class="geotagr-key-instructions" style="display:none;margin-top:8px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1;">
+			<strong><?php esc_html_e( 'Getting a Google Maps API key:', 'geotagr' ); ?></strong>
+			<ol style="margin:6px 0 0 1.2em;padding:0;">
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> and create or select a project.', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li><?php esc_html_e( 'Enable the Geocoding API for your project under APIs &amp; Services › Library.', 'geotagr' ); ?></li>
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Create a key under <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">APIs &amp; Services › Credentials</a>.', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li><?php esc_html_e( 'Restrict the key to HTTP referrers and add your site\'s domain.', 'geotagr' ); ?></li>
+			</ol>
+		</div>
+
+		<div id="geotagr-key-instructions-mapbox" class="geotagr-key-instructions" style="display:none;margin-top:8px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1;">
+			<strong><?php esc_html_e( 'Getting a Mapbox access token:', 'geotagr' ); ?></strong>
+			<ol style="margin:6px 0 0 1.2em;padding:0;">
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Sign up or log in at <a href="https://account.mapbox.com/" target="_blank" rel="noopener">mapbox.com</a>.', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li>
+				<?php
+				echo wp_kses(
+					__( 'Go to <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener">Access Tokens</a> and click "Create a token".', 'geotagr' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				?>
+					</li>
+				<li><?php esc_html_e( 'Under "Token restrictions", add your site\'s URL to the Allowed URLs list.', 'geotagr' ); ?></li>
+				<li><?php esc_html_e( 'Ensure the token has the "styles:tiles" and "geocoding" scopes (the default public token works for geocoding).', 'geotagr' ); ?></li>
+			</ol>
+		</div>
+
+		<script>
+		( function () {
+			var select = document.getElementById( 'geotagr-provider' );
+			var panels = document.querySelectorAll( '.geotagr-key-instructions' );
+			function update() {
+				panels.forEach( function ( el ) { el.style.display = 'none'; } );
+				var target = document.getElementById( 'geotagr-key-instructions-' + select.value );
+				if ( target ) { target.style.display = 'block'; }
+			}
+			select.addEventListener( 'change', update );
+			update();
+		} )();
+		</script>
+		<?php
 	}
 
 	/**
