@@ -207,14 +207,15 @@ function mapboxReverse(lat, lng, apiKey) {
  * @return {Promise<{lat: number, lng: number, name: string, address: string}|null>} Normalised result or null.
  */
 export function geocodeForward(query) {
+	const normalised = query.replace(/\s{2,}/g, ' ').trim();
 	const { provider, apiKey } = config();
 	switch (provider) {
 		case 'google':
-			return googleForward(query, apiKey);
+			return googleForward(normalised, apiKey);
 		case 'mapbox':
-			return mapboxForward(query, apiKey);
+			return mapboxForward(normalised, apiKey);
 		default:
-			return nominatimForward(query);
+			return nominatimForward(normalised);
 	}
 }
 
