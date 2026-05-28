@@ -5,7 +5,7 @@ Tags: geolocation, geocoding, map, metadata, location
 Requires at least: 6.7
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,9 @@ GeoTagr lets you attach geographic coordinates, a place name, and a formatted ad
 3. Go to Settings → GeoTagr to configure post types, taxonomy visibility, and your geocoding provider.
 
 == Changelog ==
+
+= 0.5.0 =
+* Add: Location Name block (`geotagr/location-name`) — displays the place name attached to a post; renders nothing when no location is set.
 
 = 0.4.0 =
 * Add: Nominatim, Google Places, and Mapbox geocoding providers — configurable from Settings.
