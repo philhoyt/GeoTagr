@@ -18,6 +18,8 @@ if ( ! file_exists( $wp_tests_dir . '/includes/functions.php' ) ) {
 	return;
 }
 
+define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', dirname( __DIR__, 2 ) . '/vendor/yoast/phpunit-polyfills' );
+
 require_once $wp_tests_dir . '/includes/functions.php';
 
 /**

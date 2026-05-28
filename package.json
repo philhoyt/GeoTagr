@@ -15,7 +15,7 @@
     "env:start": "wp-env start",
     "env:stop": "wp-env stop",
     "env:clean": "wp-env clean",
-    "test:php": "wp-env run tests-phpunit -- phpunit"
+    "test:php": "wp-env run tests-cli --env-cwd wp-content/plugins/geotagr -- vendor/bin/phpunit"
   },
   "keywords": [],
   "author": "",
