@@ -1,6 +1,7 @@
 import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps } from '@wordpress/block-editor';
 import { useEntityProp } from '@wordpress/core-data';
+import { mapMarker } from '@wordpress/icons';
 import metadata from './block.json';
 
 function Edit({ context }) {
@@ -16,6 +17,7 @@ function Edit({ context }) {
 }
 
 registerBlockType(metadata.name, {
+	icon: mapMarker,
 	edit: Edit,
 	save: () => null,
 });
