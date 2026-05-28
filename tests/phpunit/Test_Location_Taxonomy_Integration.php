@@ -69,7 +69,12 @@ class Test_Location_Taxonomy_Integration extends WP_UnitTestCase {
 		$this->assertInstanceOf( \WP_Term::class, $term_b );
 		$this->assertSame( $term_a->term_id, $term_b->term_id );
 
-		$all_terms = get_terms( array( 'taxonomy' => LocationTaxonomy::TAXONOMY, 'hide_empty' => false ) );
+		$all_terms = get_terms(
+			array(
+				'taxonomy'   => LocationTaxonomy::TAXONOMY,
+				'hide_empty' => false,
+			)
+		);
 		$this->assertCount( 1, $all_terms );
 	}
 
