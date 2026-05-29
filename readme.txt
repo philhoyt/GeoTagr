@@ -24,6 +24,14 @@ GeoTagr lets you attach geographic coordinates, a place name, and a formatted ad
 == Changelog ==
 
 = 0.6.3 =
+* Security: Google API key no longer sent to the browser when using the Google geocoding provider.
+* Fix: Google forward geocoding now returns results correctly (broken since v0.6.0 array response change).
+* Fix: Classic editor strings are now translatable via `__()`.
+* Fix: ESLint configuration migrated to flat config required by `@wordpress/scripts` 32.x.
+* Fix: Classic editor metabox saves lat/lng as float, matching the REST API save path.
+* Add: Geo meta changes made by external callers (e.g. REST API writes) now sync the location taxonomy automatically.
+
+= 0.6.2 =
 * Fix: Location Name block now loads correctly on live sites — block.json path updated to the compiled build directory.
 
 = 0.6.1 =
