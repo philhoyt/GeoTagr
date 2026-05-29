@@ -5,7 +5,7 @@ Tags: geolocation, geocoding, map, metadata, location
 Requires at least: 6.7
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,9 @@ GeoTagr lets you attach geographic coordinates, a place name, and a formatted ad
 3. Go to Settings → GeoTagr to configure post types, taxonomy visibility, and your geocoding provider.
 
 == Changelog ==
+
+= 0.6.1 =
+* Fix: Forward geocode now uses the Places API (New) with an optional user-supplied location bias, preventing server IP from skewing results on hosted environments.
 
 = 0.6.0 =
 * Change: Geocode proxy now returns up to 5 candidate results instead of a single result.

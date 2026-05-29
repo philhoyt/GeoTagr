@@ -24,9 +24,9 @@ class GeocodeProxy {
 	private const ROUTE     = '/geocode';
 	private const NAMESPACE = 'geotagr/v1';
 
-	private const GOOGLE_TEXTSEARCH   = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
-	private const GOOGLE_NEARBYSEARCH = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
-	private const GOOGLE_GEOCODE      = 'https://maps.googleapis.com/maps/api/geocode/json';
+	private const GOOGLE_PLACES_SEARCH = 'https://places.googleapis.com/v1/places:searchText';
+	private const GOOGLE_NEARBYSEARCH  = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+	private const GOOGLE_GEOCODE       = 'https://maps.googleapis.com/maps/api/geocode/json';
 
 	/**
 	 * Register the REST route.
@@ -88,7 +88,15 @@ class GeocodeProxy {
 			if ( empty( $query ) ) {
 				return new \WP_Error( 'geotagr_missing_query', __( 'query is required for forward geocoding.', 'geotagr' ), array( 'status' => 400 ) );
 			}
-			return $this->google_forward( $query, $api_key );
+			$bias_lat = $request->get_param( 'lat' );
+			$bias_lng = $request->get_param( 'lng' );
+			$bias     = ( null !== $bias_lat && null !== $bias_lng )
+				? array(
+					'lat' => (float) $bias_lat,
+					'lng' => (float) $bias_lng,
+				)
+				: null;
+			return $this->google_forward( $query, $api_key, $bias );
 		}
 
 		$lat = $request->get_param( 'lat' );
@@ -104,18 +112,38 @@ class GeocodeProxy {
 	/**
 	 * Forward geocode via Google Places Text Search.
 	 *
-	 * @param string $query   User-supplied search string.
-	 * @param string $api_key Google API key.
+	 * @param string     $query   User-supplied search string.
+	 * @param string     $api_key Google API key.
+	 * @param array|null $bias    Optional { lat, lng } to pass as a 50 km locationBias circle.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	private function google_forward( string $query, string $api_key ): \WP_REST_Response|\WP_Error {
-		$response = wp_remote_get(
-			add_query_arg(
-				array(
-					'query' => $query,
-					'key'   => $api_key,
+	private function google_forward( string $query, string $api_key, ?array $bias = null ): \WP_REST_Response|\WP_Error {
+		$body = array(
+			'textQuery' => $query,
+			'pageSize'  => 5,
+		);
+
+		if ( $bias ) {
+			$body['locationBias'] = array(
+				'circle' => array(
+					'center' => array(
+						'latitude'  => $bias['lat'],
+						'longitude' => $bias['lng'],
+					),
+					'radius' => 50000.0,
 				),
-				self::GOOGLE_TEXTSEARCH
+			);
+		}
+
+		$response = wp_remote_post(
+			self::GOOGLE_PLACES_SEARCH,
+			array(
+				'headers' => array(
+					'Content-Type'     => 'application/json',
+					'X-Goog-Api-Key'   => $api_key,
+					'X-Goog-FieldMask' => 'places.displayName,places.formattedAddress,places.location',
+				),
+				'body'    => wp_json_encode( $body ),
 			)
 		);
 
@@ -123,15 +151,14 @@ class GeocodeProxy {
 			return $response;
 		}
 
-		$data   = json_decode( wp_remote_retrieve_body( $response ), true );
-		$raw    = array_slice( $data['results'] ?? array(), 0, 5 );
-		$status = $data['status'] ?? 'UNKNOWN';
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		$raw  = $data['places'] ?? array();
 
 		if ( empty( $raw ) ) {
 			return new \WP_REST_Response(
 				array(
 					'results'       => array(),
-					'google_status' => $status,
+					'google_status' => isset( $data['error'] ) ? $data['error']['message'] : 'ZERO_RESULTS',
 				),
 				200
 			);
@@ -141,10 +168,10 @@ class GeocodeProxy {
 			array_map(
 				static function ( array $r ): array {
 					return array(
-						'lat'     => $r['geometry']['location']['lat'],
-						'lng'     => $r['geometry']['location']['lng'],
-						'name'    => $r['name'] ?? '',
-						'address' => $r['formatted_address'] ?? '',
+						'lat'     => $r['location']['latitude'],
+						'lng'     => $r['location']['longitude'],
+						'name'    => $r['displayName']['text'] ?? '',
+						'address' => $r['formattedAddress'] ?? '',
 					);
 				},
 				$raw
