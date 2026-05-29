@@ -124,18 +124,30 @@ class GeocodeProxy {
 		}
 
 		$data   = json_decode( wp_remote_retrieve_body( $response ), true );
-		$result = $data['results'][0] ?? null;
+		$raw    = array_slice( $data['results'] ?? array(), 0, 5 );
+		$status = $data['status'] ?? 'UNKNOWN';
 
-		if ( ! $result ) {
-			return new \WP_REST_Response( null, 200 );
+		if ( empty( $raw ) ) {
+			return new \WP_REST_Response(
+				array(
+					'results'       => array(),
+					'google_status' => $status,
+				),
+				200
+			);
 		}
 
 		return new \WP_REST_Response(
-			array(
-				'lat'     => $result['geometry']['location']['lat'],
-				'lng'     => $result['geometry']['location']['lng'],
-				'name'    => $result['name'] ?? '',
-				'address' => $result['formatted_address'] ?? '',
+			array_map(
+				static function ( array $r ): array {
+					return array(
+						'lat'     => $r['geometry']['location']['lat'],
+						'lng'     => $r['geometry']['location']['lng'],
+						'name'    => $r['name'] ?? '',
+						'address' => $r['formatted_address'] ?? '',
+					);
+				},
+				$raw
 			),
 			200
 		);
