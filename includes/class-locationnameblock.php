@@ -43,7 +43,7 @@ class LocationNameBlock {
 		);
 
 		register_block_type_from_metadata(
-			GEOTAGR_PLUGIN_DIR . 'src/blocks/location-name',
+			GEOTAGR_PLUGIN_DIR . 'build/blocks/location-name',
 			array(
 				'editor_script_handles' => array( 'geotagr-location-name-editor' ),
 				'render_callback'       => array( $this, 'render' ),
