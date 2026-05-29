@@ -1,5 +1,6 @@
 /* Classic editor metabox — geolocation + geocoding. */
 
+import { __ } from '@wordpress/i18n';
 import { geocodeForward, geocodeReverse } from '../geocoding';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,12 +38,17 @@ document.addEventListener('DOMContentLoaded', () => {
 			setError('');
 
 			if (!navigator.geolocation) {
-				setError('Geolocation is not supported by your browser.');
+				setError(
+					__(
+						'Geolocation is not supported by your browser.',
+						'geotagr'
+					)
+				);
 				return;
 			}
 
 			setBusy(true);
-			useLocationBtn.textContent = 'Detecting…';
+			useLocationBtn.textContent = __('Detecting…', 'geotagr');
 
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
@@ -69,14 +75,21 @@ document.addEventListener('DOMContentLoaded', () => {
 						.catch(() => {})
 						.finally(() => {
 							setBusy(false);
-							useLocationBtn.textContent = 'Use my location';
+							useLocationBtn.textContent = __(
+								'Use my location',
+								'geotagr'
+							);
 						});
 				},
 				(err) => {
 					setBusy(false);
-					useLocationBtn.textContent = 'Use my location';
+					useLocationBtn.textContent = __(
+						'Use my location',
+						'geotagr'
+					);
 					setError(
-						err.message || 'Could not retrieve your location.'
+						err.message ||
+							__('Could not retrieve your location.', 'geotagr')
 					);
 				}
 			);
@@ -87,18 +100,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		searchAddressBtn.addEventListener('click', () => {
 			const query = addressInput?.value.trim();
 			if (!query) {
-				setError('Enter an address to search.');
+				setError(__('Enter an address to search.', 'geotagr'));
 				return;
 			}
 
 			setError('');
 			setBusy(true);
-			searchAddressBtn.textContent = 'Searching…';
+			searchAddressBtn.textContent = __('Searching…', 'geotagr');
 
 			geocodeForward(query)
 				.then((result) => {
 					if (!result) {
-						setError('No results found for that address.');
+						setError(
+							__('No results found for that address.', 'geotagr')
+						);
 						return;
 					}
 					if (latInput) {
@@ -115,11 +130,19 @@ document.addEventListener('DOMContentLoaded', () => {
 					}
 				})
 				.catch(() =>
-					setError('Address lookup failed. Please try again.')
+					setError(
+						__(
+							'Address lookup failed. Please try again.',
+							'geotagr'
+						)
+					)
 				)
 				.finally(() => {
 					setBusy(false);
-					searchAddressBtn.textContent = 'Search on Address';
+					searchAddressBtn.textContent = __(
+						'Search on Address',
+						'geotagr'
+					);
 				});
 		});
 	}

@@ -50,16 +50,19 @@ class BlockEditor {
 			true
 		);
 
-		wp_localize_script(
+		$provider = Settings::get( 'geocoding_provider', 'nominatim' );
+		wp_add_inline_script(
 			'geo-tagr-classic',
-			'geoTagrData',
-			array(
-				'version'           => GEOTAGR_VERSION,
-				'geocodingProvider' => Settings::get( 'geocoding_provider', 'nominatim' ),
-				'geocodingApiKey'   => Settings::get( 'geocoding_api_key', '' ),
-				'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
-				'nonce'             => wp_create_nonce( 'wp_rest' ),
-			)
+			'window.geoTagrData = ' . wp_json_encode(
+				array(
+					'version'           => GEOTAGR_VERSION,
+					'geocodingProvider' => $provider,
+					'geocodingApiKey'   => 'google' !== $provider ? Settings::get( 'geocoding_api_key', '' ) : '',
+					'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
+					'nonce'             => wp_create_nonce( 'wp_rest' ),
+				)
+			) . ';',
+			'before'
 		);
 	}
 
@@ -90,16 +93,19 @@ class BlockEditor {
 			$asset['version']
 		);
 
-		wp_localize_script(
+		$provider = Settings::get( 'geocoding_provider', 'nominatim' );
+		wp_add_inline_script(
 			'geo-tagr-panel',
-			'geoTagrData',
-			array(
-				'version'           => GEOTAGR_VERSION,
-				'geocodingProvider' => Settings::get( 'geocoding_provider', 'nominatim' ),
-				'geocodingApiKey'   => Settings::get( 'geocoding_api_key', '' ),
-				'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
-				'nonce'             => wp_create_nonce( 'wp_rest' ),
-			)
+			'window.geoTagrData = ' . wp_json_encode(
+				array(
+					'version'           => GEOTAGR_VERSION,
+					'geocodingProvider' => $provider,
+					'geocodingApiKey'   => 'google' !== $provider ? Settings::get( 'geocoding_api_key', '' ) : '',
+					'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
+					'nonce'             => wp_create_nonce( 'wp_rest' ),
+				)
+			) . ';',
+			'before'
 		);
 	}
 }

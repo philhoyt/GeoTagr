@@ -136,12 +136,20 @@ class Metabox {
 			'geo_tagr_address' => '_geo_tagr_address',
 		);
 
+		$numeric_fields = array( 'geo_tagr_lat', 'geo_tagr_lng' );
+
 		foreach ( $fields as $input => $meta_key ) {
 			if ( ! isset( $_POST[ $input ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				continue;
 			}
 
-			$raw = sanitize_text_field( wp_unslash( (string) $_POST[ $input ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$raw_string = wp_unslash( (string) $_POST[ $input ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			if ( in_array( $input, $numeric_fields, true ) ) {
+				$raw = '' === trim( $raw_string ) ? '' : (float) $raw_string;
+			} else {
+				$raw = sanitize_text_field( $raw_string );
+			}
 
 			if ( '' === $raw ) {
 				delete_post_meta( $post_id, $meta_key );

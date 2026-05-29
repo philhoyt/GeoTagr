@@ -123,7 +123,12 @@ function googleProxy(params) {
 }
 
 function googleForward(query) {
-	return googleProxy({ type: 'forward', query });
+	return googleProxy({ type: 'forward', query }).then((result) => {
+		if (!result || !Array.isArray(result) || result.length === 0) {
+			return null;
+		}
+		return result[0];
+	});
 }
 
 function googleReverse(lat, lng) {

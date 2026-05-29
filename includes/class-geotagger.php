@@ -51,5 +51,38 @@ class GeoTagger {
 		add_action( 'admin_enqueue_scripts', array( $block_editor, 'enqueue_classic' ) );
 		add_action( 'add_meta_boxes', array( $metabox, 'register' ) );
 		add_action( 'save_post', array( $metabox, 'save' ) );
+
+		// Sync taxonomy terms when geo meta is written by any external caller
+		// (e.g. QuickPostr's REST endpoint). Uses shutdown so all four keys are
+		// guaranteed to be saved before the sync runs.
+		$geo_keys = array( '_geo_tagr_lat', '_geo_tagr_lng', '_geo_tagr_place', '_geo_tagr_address' );
+		$pending  = array();
+
+		$queue = static function ( $meta_id, $post_id, $meta_key ) use ( $geo_keys, &$pending ): void {
+			if ( in_array( $meta_key, $geo_keys, true ) ) {
+				$pending[ $post_id ] = true;
+			}
+		};
+
+		add_action( 'added_post_meta', $queue, 10, 3 );
+		add_action( 'updated_post_meta', $queue, 10, 3 );
+
+		// Dequeue posts already synced by the explicit save path (metabox / block editor)
+		// so the shutdown handler doesn't duplicate the work.
+		add_action(
+			'geo_tagr_meta_saved',
+			static function ( int $post_id ) use ( &$pending ): void {
+				unset( $pending[ $post_id ] );
+			}
+		);
+
+		add_action(
+			'shutdown',
+			static function () use ( &$pending ): void {
+				foreach ( array_keys( $pending ) as $post_id ) {
+					Meta::fire_saved_action( $post_id );
+				}
+			}
+		);
 	}
 }
