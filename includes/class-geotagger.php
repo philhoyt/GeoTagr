@@ -53,8 +53,9 @@ class GeoTagger {
 		add_action( 'save_post', array( $metabox, 'save' ) );
 
 		// Sync taxonomy terms when geo meta is written by any external caller
-		// (e.g. QuickPostr's REST endpoint). Uses shutdown so all four keys are
-		// guaranteed to be saved before the sync runs.
+		// (e.g. QuickPostr's REST endpoint), including deletes (a REST write of
+		// null removes the key). Uses shutdown so all four keys are guaranteed
+		// to be saved before the sync runs.
 		$geo_keys = array( '_geo_tagr_lat', '_geo_tagr_lng', '_geo_tagr_place', '_geo_tagr_address' );
 		$pending  = array();
 
@@ -66,6 +67,7 @@ class GeoTagger {
 
 		add_action( 'added_post_meta', $queue, 10, 3 );
 		add_action( 'updated_post_meta', $queue, 10, 3 );
+		add_action( 'deleted_post_meta', $queue, 10, 3 );
 
 		// Dequeue posts already synced by the explicit save path (metabox / block editor)
 		// so the shutdown handler doesn't duplicate the work.
