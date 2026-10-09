@@ -5,10 +5,12 @@
  * Both return a normalised { lat, lng, name, address } object.
  *
  * Provider and API key are read from window.geoTagrData at call time so
- * they reflect whatever was set server-side via wp_localize_script.
+ * they reflect whatever was set server-side via wp_add_inline_script.
  *
- * Falls back to Nominatim when the configured provider is not 'nominatim'
- * but no API key has been saved.
+ * Google is always proxied server-side, so its key never reaches the
+ * browser; the server reports whether a key is saved via geocodingHasKey.
+ * Mapbox is called directly, so it needs its key client-side. Either way,
+ * falls back to Nominatim when the selected provider has no key saved.
  */
 
 const NOMINATIM_SEARCH =
@@ -27,13 +29,16 @@ function stripUnit(query) {
 		.trim();
 }
 
-function config() {
+export function config() {
 	const data = window.geoTagrData ?? {};
 	const provider = data.geocodingProvider ?? 'nominatim';
 	const apiKey = data.geocodingApiKey ?? '';
+	// Google is proxied: the key stays on the server, so check the flag
+	// rather than the (intentionally empty) browser key.
+	const hasKey = provider === 'google' ? !!data.geocodingHasKey : !!apiKey;
 	// Fall back to Nominatim when a keyed provider has no key configured.
 	const effective =
-		provider !== 'nominatim' && !apiKey ? 'nominatim' : provider;
+		provider !== 'nominatim' && !hasKey ? 'nominatim' : provider;
 	return { provider: effective, apiKey };
 }
 

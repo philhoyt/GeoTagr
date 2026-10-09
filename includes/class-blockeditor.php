@@ -51,13 +51,15 @@ class BlockEditor {
 		);
 
 		$provider = Settings::get( 'geocoding_provider', 'nominatim' );
+		$api_key  = (string) Settings::get( 'geocoding_api_key', '' );
 		wp_add_inline_script(
 			'geo-tagr-classic',
 			'window.geoTagrData = ' . wp_json_encode(
 				array(
 					'version'           => GEOTAGR_VERSION,
 					'geocodingProvider' => $provider,
-					'geocodingApiKey'   => 'google' !== $provider ? Settings::get( 'geocoding_api_key', '' ) : '',
+					'geocodingApiKey'   => 'google' !== $provider ? $api_key : '',
+					'geocodingHasKey'   => '' !== $api_key,
 					'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
 					'nonce'             => wp_create_nonce( 'wp_rest' ),
 				)
@@ -94,13 +96,15 @@ class BlockEditor {
 		);
 
 		$provider = Settings::get( 'geocoding_provider', 'nominatim' );
+		$api_key  = (string) Settings::get( 'geocoding_api_key', '' );
 		wp_add_inline_script(
 			'geo-tagr-panel',
 			'window.geoTagrData = ' . wp_json_encode(
 				array(
 					'version'           => GEOTAGR_VERSION,
 					'geocodingProvider' => $provider,
-					'geocodingApiKey'   => 'google' !== $provider ? Settings::get( 'geocoding_api_key', '' ) : '',
+					'geocodingApiKey'   => 'google' !== $provider ? $api_key : '',
+					'geocodingHasKey'   => '' !== $api_key,
 					'proxyUrl'          => rest_url( 'geotagr/v1/geocode' ),
 					'nonce'             => wp_create_nonce( 'wp_rest' ),
 				)
