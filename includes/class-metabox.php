@@ -74,7 +74,7 @@ class Metabox {
 				<button type="button" id="geo-tagr-search-address" class="button" style="margin-left:4px">
 					<?php esc_html_e( 'Search on Address', 'geotagr' ); ?>
 				</button>
-				<span id="geo-tagr-location-error" style="color:#d63638;display:none;margin-left:8px;"></span>
+				<span id="geo-tagr-location-error" role="alert" style="color:#d63638;margin-left:8px;"></span>
 			</p>
 			<p>
 				<label for="geo_tagr_lat"><?php esc_html_e( 'Latitude', 'geotagr' ); ?></label><br>

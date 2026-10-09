@@ -4,7 +4,8 @@ import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { TextControl, Button, Notice, Spinner } from '@wordpress/components';
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
+import { speak } from '@wordpress/a11y';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { geocodeForward, geocodeReverse } from '../geocoding';
@@ -37,6 +38,19 @@ function toNumber(value) {
 
 function roundCoord(value) {
 	return Math.round(value * COORD_PRECISION) / COORD_PRECISION;
+}
+
+function announceResult(result) {
+	const label = result.name || result.address;
+	if (label) {
+		speak(
+			sprintf(
+				/* translators: %s: place name or address. */
+				__('Location found: %s', 'geotagr'),
+				label
+			)
+		);
+	}
 }
 
 function GeoTagrPanel() {
@@ -162,6 +176,7 @@ function GeoTagrPanel() {
 								[PLACE_KEY]: result.name,
 								[ADDRESS_KEY]: result.address,
 							});
+							announceResult(result);
 						}
 					})
 					.catch(() => {})
@@ -198,6 +213,7 @@ function GeoTagrPanel() {
 					[PLACE_KEY]: result.name,
 					[ADDRESS_KEY]: result.address,
 				});
+				announceResult(result);
 			})
 			.catch(() =>
 				setError(
@@ -228,6 +244,7 @@ function GeoTagrPanel() {
 	return (
 		<PluginDocumentSettingPanel
 			name="geo-tagr-panel"
+			className="geo-tagr-panel"
 			title={__('GeoTagr', 'geotagr')}
 		>
 			{error && (
@@ -241,6 +258,8 @@ function GeoTagrPanel() {
 			)}
 
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Full address', 'geotagr')}
 				value={address}
 				onChange={(v) => updateMeta({ [ADDRESS_KEY]: v })}
@@ -249,9 +268,11 @@ function GeoTagrPanel() {
 
 			<div className="geo-tagr-actions">
 				<Button
+					__next40pxDefaultSize
 					variant="secondary"
 					onClick={handleUseMyLocation}
 					disabled={loading}
+					accessibleWhenDisabled
 				>
 					{loading ? (
 						<>
@@ -263,15 +284,19 @@ function GeoTagrPanel() {
 					)}
 				</Button>
 				<Button
+					__next40pxDefaultSize
 					variant="secondary"
 					onClick={handleSearchOnAddress}
 					disabled={loading}
+					accessibleWhenDisabled
 				>
 					{__('Search on Address', 'geotagr')}
 				</Button>
 			</div>
 
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Latitude', 'geotagr')}
 				value={displayCoord(numLat)}
 				onChange={onCoordChange(LAT_KEY)}
@@ -279,6 +304,8 @@ function GeoTagrPanel() {
 				step="any"
 			/>
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Longitude', 'geotagr')}
 				value={displayCoord(numLng)}
 				onChange={onCoordChange(LNG_KEY)}
@@ -286,6 +313,8 @@ function GeoTagrPanel() {
 				step="any"
 			/>
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Place name', 'geotagr')}
 				value={place}
 				onChange={(v) => updateMeta({ [PLACE_KEY]: v })}
@@ -294,8 +323,15 @@ function GeoTagrPanel() {
 			<div
 				ref={mapContainerRef}
 				className="geo-tagr-map"
+				role="region"
 				aria-label={__('Location map preview', 'geotagr')}
 			/>
+			<p className="screen-reader-text">
+				{__(
+					'The map is a visual preview only. Use the Latitude and Longitude fields above to set the location.',
+					'geotagr'
+				)}
+			</p>
 		</PluginDocumentSettingPanel>
 	);
 }
