@@ -9,6 +9,8 @@ parameters:
         - includes
     scanDirectories:
         - lib/plugin-update-checker
+    bootstrapFiles:
+        - tests/phpstan-bootstrap.php
     excludePaths:
         - vendor
         - node_modules

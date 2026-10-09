@@ -152,22 +152,20 @@ class GeocodeProxy {
 		 * @param array            $data    Normalised result data.
 		 * @param \WP_REST_Request $request The proxy request.
 		 */
-		$data = apply_filters( 'geo_tagr_geocode_result', $result->get_data(), $request );
+		$data = (array) apply_filters( 'geo_tagr_geocode_result', $result->get_data(), $request );
 
-		if ( is_array( $data ) ) {
-			/**
-			 * Filters how long geocoding results are cached, in seconds.
-			 *
-			 * Inputs are immutable, so a long TTL is safe; set 0 to disable caching.
-			 *
-			 * @param int $ttl Cache lifetime in seconds.
-			 */
-			$ttl = (int) apply_filters( 'geo_tagr_geocode_cache_ttl', DAY_IN_SECONDS );
-			if ( $ttl > 0 ) {
-				set_transient( $cache_key, $data, $ttl );
-			}
-			$result->set_data( $data );
+		/**
+		 * Filters how long geocoding results are cached, in seconds.
+		 *
+		 * Inputs are immutable, so a long TTL is safe; set 0 to disable caching.
+		 *
+		 * @param int $ttl Cache lifetime in seconds.
+		 */
+		$ttl = (int) apply_filters( 'geo_tagr_geocode_cache_ttl', DAY_IN_SECONDS );
+		if ( $ttl > 0 ) {
+			set_transient( $cache_key, $data, $ttl );
 		}
+		$result->set_data( $data );
 
 		return $result;
 	}
@@ -249,8 +247,8 @@ class GeocodeProxy {
 			return $response;
 		}
 
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		$raw  = is_array( $data ) ? ( $data['places'] ?? array() ) : array();
+		$data = (array) json_decode( wp_remote_retrieve_body( $response ), true );
+		$raw  = (array) ( $data['places'] ?? array() );
 
 		if ( empty( $raw ) ) {
 			return new \WP_REST_Response(
@@ -265,7 +263,8 @@ class GeocodeProxy {
 		return new \WP_REST_Response(
 			array_values(
 				array_map(
-					static function ( array $r ): array {
+					static function ( mixed $r ): array {
+						$r = (array) $r;
 						return array(
 							'lat'     => isset( $r['location']['latitude'] ) ? (float) $r['location']['latitude'] : null,
 							'lng'     => isset( $r['location']['longitude'] ) ? (float) $r['location']['longitude'] : null,
@@ -333,15 +332,15 @@ class GeocodeProxy {
 			return $geocode;
 		}
 
-		$nearby_data  = is_wp_error( $nearby ) ? array() : json_decode( wp_remote_retrieve_body( $nearby ), true );
-		$geocode_data = is_wp_error( $geocode ) ? array() : json_decode( wp_remote_retrieve_body( $geocode ), true );
+		$nearby_data  = is_wp_error( $nearby ) ? array() : (array) json_decode( wp_remote_retrieve_body( $nearby ), true );
+		$geocode_data = is_wp_error( $geocode ) ? array() : (array) json_decode( wp_remote_retrieve_body( $geocode ), true );
 
 		return new \WP_REST_Response(
 			array(
 				'lat'     => $lat,
 				'lng'     => $lng,
-				'name'    => is_array( $nearby_data ) ? ( $nearby_data['places'][0]['displayName']['text'] ?? '' ) : '',
-				'address' => is_array( $geocode_data ) ? ( $geocode_data['results'][0]['formatted_address'] ?? '' ) : '',
+				'name'    => (string) ( $nearby_data['places'][0]['displayName']['text'] ?? '' ),
+				'address' => (string) ( $geocode_data['results'][0]['formatted_address'] ?? '' ),
 			),
 			200
 		);

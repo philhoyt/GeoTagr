@@ -36,7 +36,10 @@ $geotagr_update_checker = PucFactory::buildUpdateChecker(
 	'geotagr'
 );
 // Only the plugin zip; the release also carries readme.txt as an asset.
-$geotagr_update_checker->getVcsApi()->enableReleaseAssets( '/\.zip$/i' );
+$geotagr_vcs_api = $geotagr_update_checker->getVcsApi();
+if ( method_exists( $geotagr_vcs_api, 'enableReleaseAssets' ) ) {
+	$geotagr_vcs_api->enableReleaseAssets( '/\.zip$/i' );
+}
 
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-locationnameblock.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-meta.php';
