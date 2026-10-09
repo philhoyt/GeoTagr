@@ -23,6 +23,11 @@ class Settings {
 	private const SECTION = 'geotagr_main';
 
 	/**
+	 * Option flag set when rewrite rules need flushing on the next admin load.
+	 */
+	public const FLUSH_FLAG = 'geotagr_flush_rewrite';
+
+	/**
 	 * Geocoding providers that accept an API key.
 	 *
 	 * @var string[]
@@ -100,6 +105,38 @@ class Settings {
 			self::PAGE,
 			self::SECTION
 		);
+	}
+
+	/**
+	 * Flag a rewrite flush when the taxonomy visibility changes.
+	 *
+	 * Hooked to add_option_/update_option_geotagr_settings. The flush itself
+	 * runs on the next admin request after the taxonomy has been re-registered.
+	 *
+	 * @param mixed $old_value Previous option value (or the option name on add).
+	 * @param mixed $new_value New option value.
+	 */
+	public static function schedule_flush_on_change( mixed $old_value, mixed $new_value ): void {
+		$was = is_array( $old_value ) && ! empty( $old_value['taxonomy_public'] );
+		$now = is_array( $new_value ) && ! empty( $new_value['taxonomy_public'] );
+
+		if ( $was !== $now ) {
+			update_option( self::FLUSH_FLAG, 1 );
+		}
+	}
+
+	/**
+	 * Flush rewrite rules once if a change has been flagged.
+	 *
+	 * Runs on init after the taxonomy is registered, admin requests only.
+	 */
+	public static function maybe_flush_rewrite_rules(): void {
+		if ( ! is_admin() || ! get_option( self::FLUSH_FLAG ) ) {
+			return;
+		}
+
+		delete_option( self::FLUSH_FLAG );
+		flush_rewrite_rules();
 	}
 
 	/**

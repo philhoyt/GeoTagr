@@ -57,4 +57,13 @@ function geo_tagr_get_post_meta( int $post_id ): ?array {
 	return \GeoTagr\Meta::get( $post_id );
 }
 
+register_activation_hook(
+	__FILE__,
+	static function (): void {
+		// Taxonomy rewrite rules are registered on the next load; flush then.
+		update_option( \GeoTagr\Settings::FLUSH_FLAG, 1 );
+	}
+);
+register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
+
 ( new \GeoTagr\GeoTagger() )->init();

@@ -56,6 +56,11 @@ class GeoTagger {
 			}
 		);
 		add_action( 'geo_tagr_meta_saved', array( $location, 'sync' ), 10, 2 );
+
+		// Toggling the public taxonomy changes rewrite rules; flush once, after registration.
+		add_action( 'add_option_geotagr_settings', array( Settings::class, 'schedule_flush_on_change' ), 10, 2 );
+		add_action( 'update_option_geotagr_settings', array( Settings::class, 'schedule_flush_on_change' ), 10, 2 );
+		add_action( 'init', array( Settings::class, 'maybe_flush_rewrite_rules' ), 20 );
 		add_action( 'init', array( $location_name_block, 'register' ) );
 		add_action( 'enqueue_block_editor_assets', array( $block_editor, 'enqueue' ) );
 		add_action( 'admin_enqueue_scripts', array( $block_editor, 'enqueue_classic' ) );
