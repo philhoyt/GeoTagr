@@ -23,6 +23,9 @@ class Metabox {
 
 	/**
 	 * Register the metabox on all allowed post types.
+	 *
+	 * Marked __back_compat_meta_box so the block editor, which has its own
+	 * sidebar panel, does not also render this box.
 	 */
 	public function register(): void {
 		$post_types = apply_filters( 'geo_tagr_allowed_post_types', array( 'post' ) );
@@ -34,7 +37,8 @@ class Metabox {
 				array( $this, 'render' ),
 				$post_type,
 				'normal',
-				'default'
+				'default',
+				array( '__back_compat_meta_box' => true )
 			);
 		}
 	}

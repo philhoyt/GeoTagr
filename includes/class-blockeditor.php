@@ -34,6 +34,11 @@ class BlockEditor {
 			return;
 		}
 
+		// The block editor has its own sidebar panel; the classic metabox is hidden there.
+		if ( $post_type && use_block_editor_for_post_type( $post_type ) ) {
+			return;
+		}
+
 		$asset_file = GEOTAGR_PLUGIN_DIR . 'build/classic.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
@@ -49,6 +54,7 @@ class BlockEditor {
 			$asset['version'],
 			true
 		);
+		wp_set_script_translations( 'geo-tagr-classic', 'geotagr', GEOTAGR_PLUGIN_DIR . 'languages' );
 
 		$provider = Settings::get( 'geocoding_provider', 'nominatim' );
 		$api_key  = (string) Settings::get( 'geocoding_api_key', '' );
@@ -72,6 +78,14 @@ class BlockEditor {
 	 * Enqueue block editor assets.
 	 */
 	public function enqueue(): void {
+		// Only on post-editor screens for enabled post types — not the Site
+		// Editor, widgets screen, or post types GeoTagr is not enabled for.
+		$screen        = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		$allowed_types = (array) apply_filters( 'geo_tagr_allowed_post_types', array( 'post' ) );
+		if ( ! $screen || ! $screen->is_block_editor() || ! in_array( $screen->post_type, $allowed_types, true ) ) {
+			return;
+		}
+
 		$asset_file = GEOTAGR_PLUGIN_DIR . 'build/panel.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
@@ -87,6 +101,7 @@ class BlockEditor {
 			$asset['version'],
 			true
 		);
+		wp_set_script_translations( 'geo-tagr-panel', 'geotagr', GEOTAGR_PLUGIN_DIR . 'languages' );
 
 		wp_enqueue_style(
 			'geo-tagr-panel',

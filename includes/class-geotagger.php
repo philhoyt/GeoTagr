@@ -30,6 +30,16 @@ class GeoTagger {
 		$metabox             = new Metabox();
 		$location_name_block = new LocationNameBlock();
 
+		// Bundled translations: the plugin is distributed from GitHub, so there
+		// are no wordpress.org language packs for core to load just-in-time.
+		add_action(
+			'init',
+			static function (): void {
+				load_plugin_textdomain( 'geotagr', false, dirname( plugin_basename( GEOTAGR_PLUGIN_FILE ) ) . '/languages' );
+			},
+			1
+		);
+
 		add_action( 'admin_menu', array( $settings, 'register' ) );
 		add_action( 'rest_api_init', array( $proxy, 'register' ) );
 
