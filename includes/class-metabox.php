@@ -129,7 +129,17 @@ class Metabox {
 			return;
 		}
 
+		// save_post also fires for the revision WordPress creates on save.
+		if ( wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		$allowed_types = (array) apply_filters( 'geo_tagr_allowed_post_types', array( 'post' ) );
+		if ( ! in_array( get_post_type( $post_id ), $allowed_types, true ) ) {
 			return;
 		}
 
@@ -140,19 +150,25 @@ class Metabox {
 			'geo_tagr_address' => '_geo_tagr_address',
 		);
 
-		$numeric_fields = array( 'geo_tagr_lat', 'geo_tagr_lng' );
+		$numeric_limits = array(
+			'geo_tagr_lat' => 90.0,
+			'geo_tagr_lng' => 180.0,
+		);
 
 		foreach ( $fields as $input => $meta_key ) {
-			if ( ! isset( $_POST[ $input ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+			if ( ! isset( $_POST[ $input ] ) || ! is_scalar( $_POST[ $input ] ) ) {
 				continue;
 			}
 
-			$raw_string = wp_unslash( (string) $_POST[ $input ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+			$raw = sanitize_text_field( wp_unslash( (string) $_POST[ $input ] ) );
 
-			if ( in_array( $input, $numeric_fields, true ) ) {
-				$raw = '' === trim( $raw_string ) ? '' : (float) $raw_string;
-			} else {
-				$raw = sanitize_text_field( $raw_string );
+			if ( isset( $numeric_limits[ $input ] ) && '' !== $raw ) {
+				if ( ! is_numeric( $raw ) || abs( (float) $raw ) > $numeric_limits[ $input ] ) {
+					continue; // Out-of-range or non-numeric: leave the stored value alone.
+				}
+				$raw = (float) $raw;
 			}
 
 			if ( '' === $raw ) {

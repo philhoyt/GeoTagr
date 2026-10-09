@@ -21,16 +21,18 @@ class Meta {
 	/**
 	 * Meta key definitions: key => sanitize callback.
 	 *
-	 * @var array<string, array{type: string, sanitize: string}>
+	 * @var array<string, array{type: string, sanitize: string, max?: int}>
 	 */
 	private const KEYS = array(
 		'_geo_tagr_lat'     => array(
 			'type'     => 'number',
 			'sanitize' => 'floatval',
+			'max'      => 90,
 		),
 		'_geo_tagr_lng'     => array(
 			'type'     => 'number',
 			'sanitize' => 'floatval',
+			'max'      => 180,
 		),
 		'_geo_tagr_place'   => array(
 			'type'     => 'string',
@@ -56,7 +58,14 @@ class Meta {
 					array(
 						'type'              => $config['type'],
 						'single'            => true,
-						'show_in_rest'      => true,
+						'show_in_rest'      => isset( $config['max'] )
+							? array(
+								'schema' => array(
+									'minimum' => -$config['max'],
+									'maximum' => $config['max'],
+								),
+							)
+							: true,
 						'sanitize_callback' => 'number' === $config['type']
 								? static fn( $value ): float => (float) $value
 								: $config['sanitize'],
