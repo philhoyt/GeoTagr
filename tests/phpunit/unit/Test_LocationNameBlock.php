@@ -81,14 +81,29 @@ class Test_LocationNameBlock extends WP_UnitTestCase {
 
 	/**
 	 * Render escapes HTML special characters in the place name.
+	 *
+	 * Tags are already stripped by the registered sanitize_callback on write,
+	 * so the fixture uses characters that survive sanitization but must still
+	 * be escaped on output.
 	 */
 	public function test_render_escapes_place_name(): void {
 		$post_id = self::factory()->post->create();
-		update_post_meta( $post_id, '_geo_tagr_place', '<script>alert("xss")</script>' );
+		update_post_meta( $post_id, '_geo_tagr_place', 'Tom & Jerry\'s "Diner"' );
 
 		$output = $this->block->render( array(), '', $this->make_block( $post_id ) );
 
-		$this->assertStringNotContainsString( '<script>', $output );
-		$this->assertStringContainsString( '&lt;script&gt;', $output );
+		$this->assertStringContainsString( 'Tom &amp; Jerry&#039;s &quot;Diner&quot;', $output );
+		$this->assertStringNotContainsString( '"Diner"', $output );
+	}
+
+	/**
+	 * Script tags never reach the output: the sanitizer strips them on write.
+	 */
+	public function test_script_in_place_name_is_stripped_on_write(): void {
+		$post_id = self::factory()->post->create();
+		update_post_meta( $post_id, '_geo_tagr_place', '<script>alert("xss")</script>' );
+
+		$this->assertStringNotContainsString( '<script', (string) get_post_meta( $post_id, '_geo_tagr_place', true ) );
+		$this->assertStringNotContainsString( '<script', $this->block->render( array(), '', $this->make_block( $post_id ) ) );
 	}
 }
