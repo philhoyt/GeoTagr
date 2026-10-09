@@ -140,55 +140,47 @@ function googleReverse(lat, lng) {
 	return googleProxy({ type: 'reverse', lat, lng });
 }
 
-// ─── Mapbox Geocoding API (v5) ────────────────────────────────────────────────
+// ─── Mapbox Geocoding API (v6) ────────────────────────────────────────────────
+// Geocoding v6 no longer returns POI data (that moved to the Search Box API),
+// so `name` is always empty for Mapbox; only the formatted address is set.
 
-const MAPBOX_BASE = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
+const MAPBOX_BASE = 'https://api.mapbox.com/search/geocode/v6';
+
+function mapboxFeatureToResult(feature, fallbackLat, fallbackLng) {
+	const props = feature.properties ?? {};
+	const [geoLng, geoLat] = feature.geometry?.coordinates ?? [];
+	return {
+		lat: props.coordinates?.latitude ?? geoLat ?? fallbackLat,
+		lng: props.coordinates?.longitude ?? geoLng ?? fallbackLng,
+		name: '',
+		address: props.full_address ?? props.place_formatted ?? '',
+	};
+}
 
 function mapboxForward(query, apiKey) {
-	return fetch(
-		`${MAPBOX_BASE}/${encodeURIComponent(query)}.json?access_token=${apiKey}&limit=1`
-	)
+	const url = new URL(`${MAPBOX_BASE}/forward`);
+	url.searchParams.set('q', query);
+	url.searchParams.set('access_token', apiKey);
+	url.searchParams.set('limit', '1');
+	return fetch(url.toString())
 		.then((r) => r.json())
 		.then((data) => {
 			const feature = data.features?.[0];
-			if (!feature) {
-				return null;
-			}
-			return {
-				lat: feature.center[1],
-				lng: feature.center[0],
-				// Use text as name when the result is any POI type (poi,
-				// poi.landmark, etc.) rather than a street address or place.
-				name: feature.place_type?.some(
-					(t) => t === 'poi' || t.startsWith('poi.')
-				)
-					? (feature.text ?? '')
-					: '',
-				address: feature.place_name ?? '',
-			};
+			return feature ? mapboxFeatureToResult(feature) : null;
 		});
 }
 
 function mapboxReverse(lat, lng, apiKey) {
-	return fetch(
-		`${MAPBOX_BASE}/${lng},${lat}.json?types=poi,address&access_token=${apiKey}&limit=1`
-	)
+	const url = new URL(`${MAPBOX_BASE}/reverse`);
+	url.searchParams.set('longitude', String(lng));
+	url.searchParams.set('latitude', String(lat));
+	url.searchParams.set('access_token', apiKey);
+	url.searchParams.set('limit', '1');
+	return fetch(url.toString())
 		.then((r) => r.json())
 		.then((data) => {
 			const feature = data.features?.[0];
-			if (!feature) {
-				return null;
-			}
-			return {
-				lat,
-				lng,
-				name: feature.place_type?.some(
-					(t) => t === 'poi' || t.startsWith('poi.')
-				)
-					? (feature.text ?? '')
-					: '',
-				address: feature.place_name ?? '',
-			};
+			return feature ? mapboxFeatureToResult(feature, lat, lng) : null;
 		});
 }
 
