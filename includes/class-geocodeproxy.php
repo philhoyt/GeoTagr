@@ -25,8 +25,13 @@ class GeocodeProxy {
 	private const NAMESPACE = 'geotagr/v1';
 
 	private const GOOGLE_PLACES_SEARCH = 'https://places.googleapis.com/v1/places:searchText';
-	private const GOOGLE_NEARBYSEARCH  = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+	private const GOOGLE_PLACES_NEARBY = 'https://places.googleapis.com/v1/places:searchNearby';
 	private const GOOGLE_GEOCODE       = 'https://maps.googleapis.com/maps/api/geocode/json';
+
+	/**
+	 * Transient key prefix for cached results.
+	 */
+	private const CACHE_PREFIX = 'geotagr_geo_';
 
 	/**
 	 * Register the REST route.
@@ -82,31 +87,122 @@ class GeocodeProxy {
 		}
 
 		$type = $request->get_param( 'type' );
+		$lat  = $request->get_param( 'lat' );
+		$lng  = $request->get_param( 'lng' );
 
 		if ( 'forward' === $type ) {
 			$query = $request->get_param( 'query' );
 			if ( empty( $query ) ) {
 				return new \WP_Error( 'geotagr_missing_query', __( 'query is required for forward geocoding.', 'geotagr' ), array( 'status' => 400 ) );
 			}
-			$bias_lat = $request->get_param( 'lat' );
-			$bias_lng = $request->get_param( 'lng' );
-			$bias     = ( null !== $bias_lat && null !== $bias_lng )
+			$bias = ( null !== $lat && null !== $lng )
 				? array(
-					'lat' => (float) $bias_lat,
-					'lng' => (float) $bias_lng,
+					'lat' => (float) $lat,
+					'lng' => (float) $lng,
 				)
 				: null;
-			return $this->google_forward( $query, $api_key, $bias );
-		}
 
-		$lat = $request->get_param( 'lat' );
-		$lng = $request->get_param( 'lng' );
+			$cache_key = $this->cache_key( 'forward', $query, $bias );
+			$cached    = get_transient( $cache_key );
+			if ( is_array( $cached ) ) {
+				return new \WP_REST_Response( $cached, 200 );
+			}
+
+			$result = $this->google_forward( $query, $api_key, $bias );
+			return $this->finish( $result, $cache_key, $request );
+		}
 
 		if ( null === $lat || null === $lng ) {
 			return new \WP_Error( 'geotagr_missing_coords', __( 'lat and lng are required for reverse geocoding.', 'geotagr' ), array( 'status' => 400 ) );
 		}
 
-		return $this->google_reverse( (float) $lat, (float) $lng, $api_key );
+		$cache_key = $this->cache_key(
+			'reverse',
+			'',
+			array(
+				'lat' => (float) $lat,
+				'lng' => (float) $lng,
+			)
+		);
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) ) {
+			return new \WP_REST_Response( $cached, 200 );
+		}
+
+		$result = $this->google_reverse( (float) $lat, (float) $lng, $api_key );
+		return $this->finish( $result, $cache_key, $request );
+	}
+
+	/**
+	 * Filter a successful result, cache it, and return it.
+	 *
+	 * @param \WP_REST_Response|\WP_Error $result    Provider result.
+	 * @param string                      $cache_key Transient key for this input.
+	 * @param \WP_REST_Request            $request   Incoming REST request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	private function finish( \WP_REST_Response|\WP_Error $result, string $cache_key, \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		/**
+		 * Filters a geocoding result before it is cached and returned.
+		 *
+		 * @param array            $data    Normalised result data.
+		 * @param \WP_REST_Request $request The proxy request.
+		 */
+		$data = apply_filters( 'geo_tagr_geocode_result', $result->get_data(), $request );
+
+		if ( is_array( $data ) ) {
+			/**
+			 * Filters how long geocoding results are cached, in seconds.
+			 *
+			 * Inputs are immutable, so a long TTL is safe; set 0 to disable caching.
+			 *
+			 * @param int $ttl Cache lifetime in seconds.
+			 */
+			$ttl = (int) apply_filters( 'geo_tagr_geocode_cache_ttl', DAY_IN_SECONDS );
+			if ( $ttl > 0 ) {
+				set_transient( $cache_key, $data, $ttl );
+			}
+			$result->set_data( $data );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Build the transient key for a request.
+	 *
+	 * @param string     $type  'forward' or 'reverse'.
+	 * @param string     $query Forward query (empty for reverse).
+	 * @param array|null $coords Optional { lat, lng }.
+	 * @return string
+	 */
+	private function cache_key( string $type, string $query, ?array $coords ): string {
+		$coord_part = $coords ? sprintf( '%.5f,%.5f', $coords['lat'], $coords['lng'] ) : '';
+		return self::CACHE_PREFIX . md5( 'google|' . $type . '|' . $query . '|' . $coord_part );
+	}
+
+	/**
+	 * Common wp_remote_* args, filterable.
+	 *
+	 * @param array $args Request-specific args (headers, body, method).
+	 * @return array
+	 */
+	private function request_args( array $args ): array {
+		$defaults = array(
+			'timeout'    => 10,
+			'user-agent' => 'GeoTagr/' . GEOTAGR_VERSION . '; ' . home_url( '/' ),
+		);
+
+		/**
+		 * Filters the HTTP request arguments sent to the geocoding provider.
+		 *
+		 * @param array $args Arguments passed to wp_remote_get()/wp_remote_post().
+		 */
+		return apply_filters( 'geo_tagr_geocode_request_args', array_merge( $defaults, $args ) );
 	}
 
 	/**
@@ -137,13 +233,15 @@ class GeocodeProxy {
 
 		$response = wp_remote_post(
 			self::GOOGLE_PLACES_SEARCH,
-			array(
-				'headers' => array(
-					'Content-Type'     => 'application/json',
-					'X-Goog-Api-Key'   => $api_key,
-					'X-Goog-FieldMask' => 'places.displayName,places.formattedAddress,places.location',
-				),
-				'body'    => wp_json_encode( $body ),
+			$this->request_args(
+				array(
+					'headers' => array(
+						'Content-Type'     => 'application/json',
+						'X-Goog-Api-Key'   => $api_key,
+						'X-Goog-FieldMask' => 'places.displayName,places.formattedAddress,places.location',
+					),
+					'body'    => wp_json_encode( $body ),
+				)
 			)
 		);
 
@@ -152,36 +250,38 @@ class GeocodeProxy {
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		$raw  = $data['places'] ?? array();
+		$raw  = is_array( $data ) ? ( $data['places'] ?? array() ) : array();
 
 		if ( empty( $raw ) ) {
 			return new \WP_REST_Response(
 				array(
 					'results'       => array(),
-					'google_status' => isset( $data['error'] ) ? $data['error']['message'] : 'ZERO_RESULTS',
+					'google_status' => isset( $data['error']['message'] ) ? (string) $data['error']['message'] : 'ZERO_RESULTS',
 				),
 				200
 			);
 		}
 
 		return new \WP_REST_Response(
-			array_map(
-				static function ( array $r ): array {
-					return array(
-						'lat'     => $r['location']['latitude'],
-						'lng'     => $r['location']['longitude'],
-						'name'    => $r['displayName']['text'] ?? '',
-						'address' => $r['formattedAddress'] ?? '',
-					);
-				},
-				$raw
+			array_values(
+				array_map(
+					static function ( array $r ): array {
+						return array(
+							'lat'     => isset( $r['location']['latitude'] ) ? (float) $r['location']['latitude'] : null,
+							'lng'     => isset( $r['location']['longitude'] ) ? (float) $r['location']['longitude'] : null,
+							'name'    => $r['displayName']['text'] ?? '',
+							'address' => $r['formattedAddress'] ?? '',
+						);
+					},
+					$raw
+				)
 			),
 			200
 		);
 	}
 
 	/**
-	 * Reverse geocode via Google Places Nearby Search + Geocoding API.
+	 * Reverse geocode via Google Places Nearby Search (New) + Geocoding API.
 	 *
 	 * Nearby Search finds the POI name; Geocoding gives the formatted address.
 	 *
@@ -191,14 +291,30 @@ class GeocodeProxy {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	private function google_reverse( float $lat, float $lng, string $api_key ): \WP_REST_Response|\WP_Error {
-		$nearby = wp_remote_get(
-			add_query_arg(
+		$nearby = wp_remote_post(
+			self::GOOGLE_PLACES_NEARBY,
+			$this->request_args(
 				array(
-					'location' => "{$lat},{$lng}",
-					'radius'   => 100,
-					'key'      => $api_key,
-				),
-				self::GOOGLE_NEARBYSEARCH
+					'headers' => array(
+						'Content-Type'     => 'application/json',
+						'X-Goog-Api-Key'   => $api_key,
+						'X-Goog-FieldMask' => 'places.displayName',
+					),
+					'body'    => wp_json_encode(
+						array(
+							'maxResultCount'      => 1,
+							'locationRestriction' => array(
+								'circle' => array(
+									'center' => array(
+										'latitude'  => $lat,
+										'longitude' => $lng,
+									),
+									'radius' => 100.0,
+								),
+							),
+						)
+					),
+				)
 			)
 		);
 
@@ -209,8 +325,13 @@ class GeocodeProxy {
 					'key'    => $api_key,
 				),
 				self::GOOGLE_GEOCODE
-			)
+			),
+			$this->request_args( array() )
 		);
+
+		if ( is_wp_error( $nearby ) && is_wp_error( $geocode ) ) {
+			return $geocode;
+		}
 
 		$nearby_data  = is_wp_error( $nearby ) ? array() : json_decode( wp_remote_retrieve_body( $nearby ), true );
 		$geocode_data = is_wp_error( $geocode ) ? array() : json_decode( wp_remote_retrieve_body( $geocode ), true );
@@ -219,8 +340,8 @@ class GeocodeProxy {
 			array(
 				'lat'     => $lat,
 				'lng'     => $lng,
-				'name'    => $nearby_data['results'][0]['name'] ?? '',
-				'address' => $geocode_data['results'][0]['formatted_address'] ?? '',
+				'name'    => is_array( $nearby_data ) ? ( $nearby_data['places'][0]['displayName']['text'] ?? '' ) : '',
+				'address' => is_array( $geocode_data ) ? ( $geocode_data['results'][0]['formatted_address'] ?? '' ) : '',
 			),
 			200
 		);
