@@ -35,15 +35,23 @@ class Settings {
 	private const KEYED_PROVIDERS = array( 'google', 'mapbox' );
 
 	/**
+	 * Valid rest_location_visibility values (see Meta::prepare_rest_value()).
+	 *
+	 * @var string[]
+	 */
+	public const VISIBILITY_MODES = Meta::VISIBILITY_MODES;
+
+	/**
 	 * Defaults used when the option has never been saved.
 	 *
-	 * @var array{allowed_post_types: string[], taxonomy_public: bool, geocoding_provider: string, geocoding_api_key: string}
+	 * @var array{allowed_post_types: string[], taxonomy_public: bool, rest_location_visibility: string, geocoding_provider: string, geocoding_api_key: string}
 	 */
 	private const DEFAULTS = array(
-		'allowed_post_types' => array( 'post' ),
-		'taxonomy_public'    => false,
-		'geocoding_provider' => 'nominatim',
-		'geocoding_api_key'  => '',
+		'allowed_post_types'       => array( 'post' ),
+		'taxonomy_public'          => false,
+		'rest_location_visibility' => 'private',
+		'geocoding_provider'       => 'nominatim',
+		'geocoding_api_key'        => '',
 	);
 
 	/**
@@ -95,6 +103,15 @@ class Settings {
 			array( $this, 'render_taxonomy_public_field' ),
 			self::PAGE,
 			self::SECTION
+		);
+
+		add_settings_field(
+			'rest_location_visibility',
+			__( 'Public API visibility', 'geotagr' ),
+			array( $this, 'render_rest_visibility_field' ),
+			self::PAGE,
+			self::SECTION,
+			array( 'label_for' => 'geotagr-rest-visibility' )
 		);
 
 		add_settings_field(
@@ -287,7 +304,32 @@ class Settings {
 			checked( $checked, true, false ),
 			esc_html__( 'Make the location taxonomy public', 'geotagr' )
 		);
-		echo '<p class="description">' . esc_html__( 'Exposes geo_tagr_location in the admin UI, nav menus, and front-end queries. Useful if you want to build location archives or use the taxonomy in your theme.', 'geotagr' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Exposes geo_tagr_location in the admin UI, nav menus, front-end queries, and the REST API. Useful if you want to build location archives or use the taxonomy in your theme.', 'geotagr' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Note: public terms expose coordinates to about 11 m through the term slug, and a term is named after the full street address when the post has no place name. The visibility setting below does not cover terms.', 'geotagr' ) . '</p>';
+	}
+
+	/**
+	 * Render the REST visibility select field.
+	 */
+	public function render_rest_visibility_field(): void {
+		$saved   = self::get( 'rest_location_visibility', 'private' );
+		$options = array(
+			'private' => __( 'Private — editors only (default)', 'geotagr' ),
+			'rounded' => __( 'Rounded — coordinates to 3 decimals (about 110 m), no address', 'geotagr' ),
+			'exact'   => __( 'Exact — coordinates and address as stored', 'geotagr' ),
+		);
+
+		printf( '<select id="geotagr-rest-visibility" name="%s[rest_location_visibility]" aria-describedby="geotagr-rest-visibility-description">', esc_attr( self::OPTION ) );
+		foreach ( $options as $value => $label ) {
+			printf(
+				'<option value="%s"%s>%s</option>',
+				esc_attr( $value ),
+				selected( $saved, $value, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
+		echo '<p class="description" id="geotagr-rest-visibility-description">' . esc_html__( 'What visitors and other sites without an editor login receive for latitude, longitude, and address through the REST API. Logged-in users who can edit posts always receive stored values. The place name is always public and can be a precise business or building name.', 'geotagr' ) . '</p>';
 	}
 
 	/**
@@ -407,7 +449,7 @@ class Settings {
 	 * Sanitize and validate the incoming settings array.
 	 *
 	 * @param mixed $input Raw POST input.
-	 * @return array{allowed_post_types: string[], taxonomy_public: bool, geocoding_provider: string, geocoding_api_key: string}
+	 * @return array{allowed_post_types: string[], taxonomy_public: bool, rest_location_visibility: string, geocoding_provider: string, geocoding_api_key: string}
 	 */
 	public function sanitize( mixed $input ): array {
 		$input = is_array( $input ) ? $input : array();
@@ -420,6 +462,10 @@ class Settings {
 		// An unchecked checkbox sends nothing — treat absence as false.
 		$taxonomy_public = ! empty( $input['taxonomy_public'] );
 
+		// Validate visibility against the known modes; fall back to private.
+		$submitted_vis            = isset( $input['rest_location_visibility'] ) ? (string) $input['rest_location_visibility'] : 'private';
+		$rest_location_visibility = in_array( $submitted_vis, self::VISIBILITY_MODES, true ) ? $submitted_vis : 'private';
+
 		// Validate provider against known list; fall back to nominatim.
 		$valid_providers    = array_merge( array( 'nominatim' ), self::KEYED_PROVIDERS );
 		$submitted_prov     = isset( $input['geocoding_provider'] ) ? (string) $input['geocoding_provider'] : 'nominatim';
@@ -428,10 +474,11 @@ class Settings {
 		$geocoding_api_key = sanitize_text_field( $input['geocoding_api_key'] ?? '' );
 
 		return array(
-			'allowed_post_types' => $allowed_types,
-			'taxonomy_public'    => $taxonomy_public,
-			'geocoding_provider' => $geocoding_provider,
-			'geocoding_api_key'  => $geocoding_api_key,
+			'allowed_post_types'       => $allowed_types,
+			'taxonomy_public'          => $taxonomy_public,
+			'rest_location_visibility' => $rest_location_visibility,
+			'geocoding_provider'       => $geocoding_provider,
+			'geocoding_api_key'        => $geocoding_api_key,
 		);
 	}
 }
