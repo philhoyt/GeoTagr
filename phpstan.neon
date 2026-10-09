@@ -12,7 +12,7 @@ parameters:
     bootstrapFiles:
         - tests/phpstan-bootstrap.php
     excludePaths:
-        - vendor
-        - node_modules
-        - build
+        - vendor (?)
+        - node_modules (?)
+        - build (?)
         - tests

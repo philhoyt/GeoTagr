@@ -22,3 +22,5 @@ composer.json
 composer.lock
 *.zip
 .phpunit.result.cache
+playwright.config.js
+artifacts
