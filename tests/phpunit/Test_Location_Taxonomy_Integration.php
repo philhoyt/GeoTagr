@@ -119,6 +119,51 @@ class Test_Location_Taxonomy_Integration extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Pins what a public taxonomy exposes over REST: no term meta, but the
+	 * slug (coordinates to 4 decimals) and the term name, which falls back to
+	 * the full address when the post has no place name. Documented, out of
+	 * scope for the meta gate; fails loudly if the surface widens.
+	 */
+	public function test_public_taxonomy_rest_exposure_is_pinned(): void {
+		if ( taxonomy_exists( LocationTaxonomy::TAXONOMY ) ) {
+			unregister_taxonomy( LocationTaxonomy::TAXONOMY );
+		}
+		$location = new LocationTaxonomy();
+		$location->register( true );
+
+		global $wp_rest_server;
+		$wp_rest_server = new WP_REST_Server();
+		do_action( 'rest_api_init', $wp_rest_server );
+
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$location->sync(
+			$post_id,
+			array(
+				'lat'     => self::LAT,
+				'lng'     => self::LNG,
+				'place'   => '',
+				'address' => '591 Negley Ave, Turtle Creek, PA',
+			)
+		);
+
+		wp_set_current_user( 0 );
+		$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/' . LocationTaxonomy::TAXONOMY ) );
+		$this->assertSame( 200, $response->get_status() );
+		$terms = $response->get_data();
+		$this->assertCount( 1, $terms );
+
+		$this->assertSame( LocationTaxonomy::slug_for( self::LAT, self::LNG ), $terms[0]['slug'] );
+		$this->assertSame( '591 Negley Ave, Turtle Creek, PA', $terms[0]['name'] );
+		// Core always emits a meta key; it must be empty because register_term_meta has no show_in_rest.
+		$this->assertSame( array(), (array) ( $terms[0]['meta'] ?? array() ), 'Term meta must not be exposed.' );
+		$this->assertStringNotContainsString( '_geo_tagr_lat', wp_json_encode( $terms[0] ) );
+
+		$wp_rest_server = null;
+		unregister_taxonomy( LocationTaxonomy::TAXONOMY );
+		$location->register( false );
+	}
+
+	/**
 	 * A post with no geo data returns null.
 	 */
 	public function test_get_term_for_post_returns_null_when_untagged(): void {
