@@ -15,6 +15,8 @@ Attach geographic location metadata to any post.
 
 GeoTagr lets you attach geographic coordinates, a place name, and a formatted address to any post. It provides a block editor sidebar panel and a classic editor metabox, both with an interactive Leaflet map. Geocoding is handled by your choice of Nominatim (free, no key required), Google Places, or Mapbox.
 
+Coordinates and addresses are private to editors by default: visitors and other sites reading the REST API receive only the place name unless you choose otherwise under Settings → GeoTagr → Public API visibility.
+
 == External services ==
 
 GeoTagr sends data to third-party services only when an editor looks up a location while writing a post. No visitor data is sent anywhere.
@@ -32,7 +34,18 @@ Suggested privacy-policy text is added to Settings → Privacy → Policy Guide.
 2. Activate the plugin through the Plugins screen in WordPress.
 3. Go to Settings → GeoTagr to configure post types, taxonomy visibility, and your geocoding provider.
 
+== Upgrade Notice ==
+
+= 0.8.0 =
+Anonymous REST API reads of latitude, longitude, and address now return 0, 0 and an empty address by default. A value of 0, 0 means redacted or absent, not a real coordinate; do not plot it. Logged-in users who can edit posts, including application-password clients, still receive stored values; the gate is role-level, so any contributor-and-above account reads coordinates on every post. Headless front ends, feeds, or map widgets that read coordinates anonymously need Settings → GeoTagr → Public API visibility set to "Rounded" or "Exact" (Exact restores the previous output). The place name stays public in every mode and can be a precise business or building name. Purge page and object caches after upgrading.
+
 == Changelog ==
+
+= 0.8.0 =
+* Change: Latitude, longitude, and address are hidden from REST API readers who cannot edit posts. See the upgrade notice.
+* Add: Public API visibility setting with Private (default), Rounded (coordinates to about 110 m, no address), and Exact modes.
+* Add: `geo_tagr_rest_location_visibility` filter to override the mode per request; unknown values fall back to Private.
+* Change: The location taxonomy setting now explains that public terms expose coordinates through the term slug and the street address through the term name when a post has no place name.
 
 = 0.7.0 =
 * Fix: The block editor panel and the Location Name block now read and save location data themselves. Before, saving only worked because the classic metabox was also rendered inside the block editor.
