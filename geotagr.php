@@ -17,6 +17,8 @@
 
 declare(strict_types=1);
 
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -28,14 +30,16 @@ define( 'GEOTAGR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once GEOTAGR_PLUGIN_DIR . 'lib/plugin-update-checker/plugin-update-checker.php';
 
-use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
-
 $geotagr_update_checker = PucFactory::buildUpdateChecker(
 	'https://github.com/philhoyt/GeoTagr/',
 	__FILE__,
 	'geotagr'
 );
-$geotagr_update_checker->getVcsApi()->enableReleaseAssets();
+// Only the plugin zip; the release also carries readme.txt as an asset.
+$geotagr_vcs_api = $geotagr_update_checker->getVcsApi();
+if ( method_exists( $geotagr_vcs_api, 'enableReleaseAssets' ) ) {
+	$geotagr_vcs_api->enableReleaseAssets( '/\.zip$/i' );
+}
 
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-locationnameblock.php';
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-meta.php';
@@ -56,5 +60,14 @@ require_once GEOTAGR_PLUGIN_DIR . 'includes/class-geotagger.php';
 function geo_tagr_get_post_meta( int $post_id ): ?array {
 	return \GeoTagr\Meta::get( $post_id );
 }
+
+register_activation_hook(
+	__FILE__,
+	static function (): void {
+		// Taxonomy rewrite rules are registered on the next load; flush then.
+		update_option( \GeoTagr\Settings::FLUSH_FLAG, 1 );
+	}
+);
+register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
 
 ( new \GeoTagr\GeoTagger() )->init();

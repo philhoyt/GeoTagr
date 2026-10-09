@@ -41,6 +41,7 @@ class LocationNameBlock {
 			$asset['version'],
 			true
 		);
+		wp_set_script_translations( 'geotagr-location-name-editor', 'geotagr', GEOTAGR_PLUGIN_DIR . 'languages' );
 
 		register_block_type_from_metadata(
 			GEOTAGR_PLUGIN_DIR . 'build/blocks/location-name',

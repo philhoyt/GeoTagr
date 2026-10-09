@@ -30,7 +30,19 @@ class GeoTagger {
 		$metabox             = new Metabox();
 		$location_name_block = new LocationNameBlock();
 
+		// Bundled translations: the plugin is distributed from GitHub, so there
+		// are no wordpress.org language packs for core to load just-in-time.
+		add_action(
+			'init',
+			static function (): void {
+				load_plugin_textdomain( 'geotagr', false, dirname( plugin_basename( GEOTAGR_PLUGIN_FILE ) ) . '/languages' );
+			},
+			1
+		);
+
+		add_action( 'admin_init', array( Settings::class, 'add_privacy_policy_content' ) );
 		add_action( 'admin_menu', array( $settings, 'register' ) );
+		add_action( 'admin_enqueue_scripts', array( $settings, 'enqueue_assets' ) );
 		add_action( 'rest_api_init', array( $proxy, 'register' ) );
 
 		add_filter(
@@ -46,6 +58,11 @@ class GeoTagger {
 			}
 		);
 		add_action( 'geo_tagr_meta_saved', array( $location, 'sync' ), 10, 2 );
+
+		// Toggling the public taxonomy changes rewrite rules; flush once, after registration.
+		add_action( 'add_option_geotagr_settings', array( Settings::class, 'schedule_flush_on_change' ), 10, 2 );
+		add_action( 'update_option_geotagr_settings', array( Settings::class, 'schedule_flush_on_change' ), 10, 2 );
+		add_action( 'init', array( Settings::class, 'maybe_flush_rewrite_rules' ), 20 );
 		add_action( 'init', array( $location_name_block, 'register' ) );
 		add_action( 'enqueue_block_editor_assets', array( $block_editor, 'enqueue' ) );
 		add_action( 'admin_enqueue_scripts', array( $block_editor, 'enqueue_classic' ) );
@@ -53,8 +70,9 @@ class GeoTagger {
 		add_action( 'save_post', array( $metabox, 'save' ) );
 
 		// Sync taxonomy terms when geo meta is written by any external caller
-		// (e.g. QuickPostr's REST endpoint). Uses shutdown so all four keys are
-		// guaranteed to be saved before the sync runs.
+		// (e.g. QuickPostr's REST endpoint), including deletes (a REST write of
+		// null removes the key). Uses shutdown so all four keys are guaranteed
+		// to be saved before the sync runs.
 		$geo_keys = array( '_geo_tagr_lat', '_geo_tagr_lng', '_geo_tagr_place', '_geo_tagr_address' );
 		$pending  = array();
 
@@ -66,6 +84,7 @@ class GeoTagger {
 
 		add_action( 'added_post_meta', $queue, 10, 3 );
 		add_action( 'updated_post_meta', $queue, 10, 3 );
+		add_action( 'deleted_post_meta', $queue, 10, 3 );
 
 		// Dequeue posts already synced by the explicit save path (metabox / block editor)
 		// so the shutdown handler doesn't duplicate the work.

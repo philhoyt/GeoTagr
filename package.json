@@ -25,13 +25,14 @@
     "env:start": "wp-env start",
     "env:stop": "wp-env stop",
     "env:clean": "wp-env clean",
-    "test:php": "wp-env run tests-cli --env-cwd wp-content/plugins/geotagr -- vendor/bin/phpunit"
+    "test:php": "wp-env run tests-cli --env-cwd \"wp-content/plugins/$(basename \"$PWD\")\" -- vendor/bin/phpunit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@wordpress/a11y": "^4.57.0",
     "@wordpress/block-editor": "^15.20.0",
     "@wordpress/blocks": "^15.20.0",
     "@wordpress/components": "^34.0.0",

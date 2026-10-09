@@ -4,7 +4,13 @@ includes:
 parameters:
     level: 5
     paths:
+        - geotagr.php
+        - uninstall.php
         - includes
+    scanDirectories:
+        - lib/plugin-update-checker
+    bootstrapFiles:
+        - tests/phpstan-bootstrap.php
     excludePaths:
         - vendor
         - node_modules

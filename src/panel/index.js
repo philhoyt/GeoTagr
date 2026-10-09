@@ -4,7 +4,8 @@ import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { TextControl, Button, Notice, Spinner } from '@wordpress/components';
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
+import { speak } from '@wordpress/a11y';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { geocodeForward, geocodeReverse } from '../geocoding';
@@ -22,23 +23,86 @@ L.Icon.Default.mergeOptions({
 		.href,
 });
 
+const LAT_KEY = '_geo_tagr_lat';
+const LNG_KEY = '_geo_tagr_lng';
+const PLACE_KEY = '_geo_tagr_place';
+const ADDRESS_KEY = '_geo_tagr_address';
+
+/** Stored precision: 5 decimals ≈ 1 m, more than the taxonomy's 4 needs. */
+const COORD_PRECISION = 1e5;
+
+function toNumber(value) {
+	const n = typeof value === 'number' ? value : parseFloat(value);
+	return Number.isFinite(n) ? n : null;
+}
+
+function roundCoord(value) {
+	return Math.round(value * COORD_PRECISION) / COORD_PRECISION;
+}
+
+function announceResult(result) {
+	const label = result.name || result.address;
+	if (label) {
+		speak(
+			sprintf(
+				/* translators: %s: place name or address. */
+				__('Location found: %s', 'geotagr'),
+				label
+			)
+		);
+	}
+}
+
 function GeoTagrPanel() {
 	const postType = useSelect(
 		(select) => select('core/editor').getCurrentPostType(),
 		[]
 	);
 
-	const [lat, setLat] = useEntityProp('postType', postType, '_geo_tagr_lat');
-	const [lng, setLng] = useEntityProp('postType', postType, '_geo_tagr_lng');
-	const [place, setPlace] = useEntityProp(
-		'postType',
-		postType,
-		'_geo_tagr_place'
-	);
-	const [address, setAddress] = useEntityProp(
-		'postType',
-		postType,
-		'_geo_tagr_address'
+	// Registered meta lives under the post record's `meta` property.
+	const [meta, setMeta] = useEntityProp('postType', postType, 'meta');
+	const stored = meta ?? {};
+
+	// Keep the latest meta in a ref so async callbacks (geolocation, fetch)
+	// patch on top of the current edits rather than a stale closure.
+	const metaRef = useRef(stored);
+	metaRef.current = stored;
+
+	const numLat = toNumber(stored[LAT_KEY]);
+	const numLng = toNumber(stored[LNG_KEY]);
+	// Core returns 0 for an unset number meta, so 0,0 means "no location".
+	const isPlaceholder = numLat === 0 && numLng === 0;
+	const hasCoords = numLat !== null && numLng !== null && !isPlaceholder;
+
+	const place = stored[PLACE_KEY] ?? '';
+	const address = stored[ADDRESS_KEY] ?? '';
+
+	/**
+	 * Merge a partial change into the post's meta edits.
+	 *
+	 * Omits the 0,0 placeholder for unset coordinates so that editing an
+	 * unrelated field never persists Null Island as a real location.
+	 *
+	 * @param {Object} patch Meta keys to change. Use null to delete a key.
+	 */
+	const updateMeta = useCallback(
+		(patch) => {
+			const current = metaRef.current;
+			const next = { ...current, ...patch };
+			const currentIsPlaceholder =
+				toNumber(current[LAT_KEY]) === 0 &&
+				toNumber(current[LNG_KEY]) === 0;
+			if (currentIsPlaceholder) {
+				if (!(LAT_KEY in patch)) {
+					delete next[LAT_KEY];
+				}
+				if (!(LNG_KEY in patch)) {
+					delete next[LNG_KEY];
+				}
+			}
+			setMeta(next);
+		},
+		[setMeta]
 	);
 
 	const [error, setError] = useState('');
@@ -52,8 +116,8 @@ function GeoTagrPanel() {
 			return;
 		}
 		const map = L.map(node, { zoomControl: true }).setView(
-			[lat || 0, lng || 0],
-			lat ? 12 : 2
+			hasCoords ? [numLat, numLng] : [0, 0],
+			hasCoords ? 12 : 2
 		);
 		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution:
@@ -61,8 +125,8 @@ function GeoTagrPanel() {
 			maxZoom: 19,
 		}).addTo(map);
 
-		if (lat && lng) {
-			markerRef.current = L.marker([lat, lng]).addTo(map);
+		if (hasCoords) {
+			markerRef.current = L.marker([numLat, numLng]).addTo(map);
 		}
 
 		mapInstanceRef.current = map;
@@ -70,12 +134,7 @@ function GeoTagrPanel() {
 
 	useEffect(() => {
 		const map = mapInstanceRef.current;
-		if (!map) {
-			return;
-		}
-		const numLat = parseFloat(lat);
-		const numLng = parseFloat(lng);
-		if (isNaN(numLat) || isNaN(numLng)) {
+		if (!map || !hasCoords) {
 			return;
 		}
 		map.setView([numLat, numLng], 12);
@@ -84,7 +143,7 @@ function GeoTagrPanel() {
 		} else {
 			markerRef.current = L.marker([numLat, numLng]).addTo(map);
 		}
-	}, [lat, lng]);
+	}, [numLat, numLng, hasCoords]);
 
 	useEffect(() => {
 		return () => {
@@ -107,14 +166,17 @@ function GeoTagrPanel() {
 		setError('');
 		navigator.geolocation.getCurrentPosition(
 			(position) => {
-				const { latitude, longitude } = position.coords;
-				setLat(latitude);
-				setLng(longitude);
+				const latitude = roundCoord(position.coords.latitude);
+				const longitude = roundCoord(position.coords.longitude);
+				updateMeta({ [LAT_KEY]: latitude, [LNG_KEY]: longitude });
 				geocodeReverse(latitude, longitude)
 					.then((result) => {
 						if (result) {
-							setPlace(result.name);
-							setAddress(result.address);
+							updateMeta({
+								[PLACE_KEY]: result.name,
+								[ADDRESS_KEY]: result.address,
+							});
+							announceResult(result);
 						}
 					})
 					.catch(() => {})
@@ -145,10 +207,13 @@ function GeoTagrPanel() {
 					);
 					return;
 				}
-				setLat(result.lat);
-				setLng(result.lng);
-				setPlace(result.name);
-				setAddress(result.address);
+				updateMeta({
+					[LAT_KEY]: result.lat,
+					[LNG_KEY]: result.lng,
+					[PLACE_KEY]: result.name,
+					[ADDRESS_KEY]: result.address,
+				});
+				announceResult(result);
 			})
 			.catch(() =>
 				setError(
@@ -158,9 +223,28 @@ function GeoTagrPanel() {
 			.finally(() => setLoading(false));
 	}
 
+	/**
+	 * Build the onChange handler for a coordinate field.
+	 *
+	 * An empty field sends null, which deletes the key (an empty string
+	 * would fail REST schema validation for a number and block the save).
+	 *
+	 * @param {string} key Meta key.
+	 * @return {Function} Change handler.
+	 */
+	function onCoordChange(key) {
+		return (value) => {
+			const n = value === '' ? null : toNumber(value);
+			updateMeta({ [key]: n });
+		};
+	}
+
+	const displayCoord = (n) => (n === null || isPlaceholder ? '' : n);
+
 	return (
 		<PluginDocumentSettingPanel
 			name="geo-tagr-panel"
+			className="geo-tagr-panel"
 			title={__('GeoTagr', 'geotagr')}
 		>
 			{error && (
@@ -174,17 +258,21 @@ function GeoTagrPanel() {
 			)}
 
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Full address', 'geotagr')}
-				value={address ?? ''}
-				onChange={setAddress}
+				value={address}
+				onChange={(v) => updateMeta({ [ADDRESS_KEY]: v })}
 				placeholder={__('Enter an address…', 'geotagr')}
 			/>
 
 			<div className="geo-tagr-actions">
 				<Button
+					__next40pxDefaultSize
 					variant="secondary"
 					onClick={handleUseMyLocation}
 					disabled={loading}
+					accessibleWhenDisabled
 				>
 					{loading ? (
 						<>
@@ -196,39 +284,54 @@ function GeoTagrPanel() {
 					)}
 				</Button>
 				<Button
+					__next40pxDefaultSize
 					variant="secondary"
 					onClick={handleSearchOnAddress}
 					disabled={loading}
+					accessibleWhenDisabled
 				>
 					{__('Search on Address', 'geotagr')}
 				</Button>
 			</div>
 
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Latitude', 'geotagr')}
-				value={lat ?? ''}
-				onChange={(v) => setLat(v === '' ? '' : parseFloat(v))}
+				value={displayCoord(numLat)}
+				onChange={onCoordChange(LAT_KEY)}
 				type="number"
 				step="any"
 			/>
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Longitude', 'geotagr')}
-				value={lng ?? ''}
-				onChange={(v) => setLng(v === '' ? '' : parseFloat(v))}
+				value={displayCoord(numLng)}
+				onChange={onCoordChange(LNG_KEY)}
 				type="number"
 				step="any"
 			/>
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={__('Place name', 'geotagr')}
-				value={place ?? ''}
-				onChange={setPlace}
+				value={place}
+				onChange={(v) => updateMeta({ [PLACE_KEY]: v })}
 			/>
 
 			<div
 				ref={mapContainerRef}
 				className="geo-tagr-map"
+				role="region"
 				aria-label={__('Location map preview', 'geotagr')}
 			/>
+			<p className="screen-reader-text">
+				{__(
+					'The map is a visual preview only. Use the Latitude and Longitude fields above to set the location.',
+					'geotagr'
+				)}
+			</p>
 		</PluginDocumentSettingPanel>
 	);
 }
