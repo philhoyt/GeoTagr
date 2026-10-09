@@ -8,8 +8,11 @@
 	"description": "Display the location name attached to a post.",
 	"keywords": [ "location", "place", "geo" ],
 	"textdomain": "geotagr",
+	"icon": "location",
 	"usesContext": [ "postId", "postType" ],
+	"example": {},
 	"supports": {
+		"html": false,
 		"anchor": true,
 		"color": {
 			"background": true,
