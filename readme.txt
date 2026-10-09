@@ -3,9 +3,9 @@
 Contributors: philhoyt
 Tags: geolocation, geocoding, map, metadata, location
 Requires at least: 6.7
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.6.3
+Stable tag: 0.7.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,22 @@ Suggested privacy-policy text is added to Settings → Privacy → Policy Guide.
 3. Go to Settings → GeoTagr to configure post types, taxonomy visibility, and your geocoding provider.
 
 == Changelog ==
+
+= 0.7.0 =
+* Fix: The block editor panel and the Location Name block now read and save location data themselves. Before, saving only worked because the classic metabox was also rendered inside the block editor.
+* Fix: The Google provider is used again when selected. Since 0.6.3, lookups silently fell back to Nominatim.
+* Fix: Clearing a coordinate in the block editor no longer blocks saving the post.
+* Change: Google reverse lookup uses Places API (New) Nearby Search. Enable "Places API (New)" on your Google Cloud project; the legacy Places API is no longer available to new projects.
+* Change: Mapbox lookups use Geocoding v6. Mapbox no longer returns place names, so only the address is filled in.
+* Add: Geocoding results from the proxy are cached for a day. New filters: `geo_tagr_geocode_request_args`, `geo_tagr_geocode_result`, `geo_tagr_geocode_cache_ttl`.
+* Fix: Uninstall now removes location terms, and runs on every site of a multisite network.
+* Fix: Making the location taxonomy public no longer requires re-saving permalinks.
+* Fix: Editor assets load only on enabled post types, and the classic metabox no longer appears inside the block editor.
+* Fix: Clearing location data through the REST API removes the post's location term.
+* Fix: Coordinates outside the valid range are rejected on save.
+* Add: Bundled translations are loaded, and editor scripts receive translations.
+* Add: Suggested privacy policy text under Settings → Privacy, and an External services section in this readme.
+* Fix: Accessibility of the settings page and editor controls: labelled fields, announced errors and results, and focus kept during lookups.
 
 = 0.6.3 =
 * Security: Google API key no longer sent to the browser when using the Google geocoding provider.
