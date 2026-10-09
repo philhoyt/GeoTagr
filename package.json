@@ -18,7 +18,7 @@
     "build": "wp-scripts build",
     "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start",
-    "lint:js": "wp-scripts lint-js src/",
+    "lint:js": "wp-scripts lint-js src/ tests/e2e/ playwright.config.js eslint.config.js webpack.config.js",
     "lint:css": "wp-scripts lint-style",
     "test:unit": "wp-scripts test-unit-js",
     "test:e2e": "wp-scripts test-playwright",
