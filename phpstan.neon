@@ -4,7 +4,11 @@ includes:
 parameters:
     level: 5
     paths:
+        - geotagr.php
+        - uninstall.php
         - includes
+    scanDirectories:
+        - lib/plugin-update-checker
     excludePaths:
         - vendor
         - node_modules

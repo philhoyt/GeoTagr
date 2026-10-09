@@ -194,6 +194,6 @@ class LocationTaxonomy {
 			return null;
 		}
 
-		return $terms[0] instanceof \WP_Term ? $terms[0] : null;
+		return $terms[0];
 	}
 }
