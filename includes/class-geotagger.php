@@ -41,6 +41,7 @@ class GeoTagger {
 		);
 
 		add_action( 'admin_menu', array( $settings, 'register' ) );
+		add_action( 'admin_enqueue_scripts', array( $settings, 'enqueue_assets' ) );
 		add_action( 'rest_api_init', array( $proxy, 'register' ) );
 
 		add_filter(

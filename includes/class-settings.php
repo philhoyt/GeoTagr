@@ -47,10 +47,17 @@ class Settings {
 	);
 
 	/**
+	 * Hook suffix of the settings page, used to scope asset loading.
+	 *
+	 * @var string
+	 */
+	private string $hook_suffix = '';
+
+	/**
 	 * Register the admin page and settings fields.
 	 */
 	public function register(): void {
-		add_options_page(
+		$this->hook_suffix = (string) add_options_page(
 			__( 'GeoTagr Settings', 'geotagr' ),
 			__( 'GeoTagr', 'geotagr' ),
 			'manage_options',
@@ -95,7 +102,8 @@ class Settings {
 			__( 'Geocoding provider', 'geotagr' ),
 			array( $this, 'render_provider_field' ),
 			self::PAGE,
-			self::SECTION
+			self::SECTION,
+			array( 'label_for' => 'geotagr-provider' )
 		);
 
 		add_settings_field(
@@ -103,7 +111,58 @@ class Settings {
 			__( 'API key', 'geotagr' ),
 			array( $this, 'render_api_key_field' ),
 			self::PAGE,
-			self::SECTION
+			self::SECTION,
+			array( 'label_for' => 'geotagr-api-key' )
+		);
+	}
+
+	/**
+	 * Enqueue the settings page script and styles on that page only.
+	 *
+	 * @param string $hook Current admin page hook suffix.
+	 */
+	public function enqueue_assets( string $hook ): void {
+		if ( '' === $this->hook_suffix || $hook !== $this->hook_suffix ) {
+			return;
+		}
+
+		$asset_file = GEOTAGR_PLUGIN_DIR . 'build/settings.asset.php';
+
+		if ( ! file_exists( $asset_file ) ) {
+			return;
+		}
+
+		$asset = require $asset_file;
+
+		wp_enqueue_script(
+			'geo-tagr-settings',
+			GEOTAGR_PLUGIN_URL . 'build/settings.js',
+			$asset['dependencies'],
+			$asset['version'],
+			true
+		);
+
+		wp_enqueue_style(
+			'geo-tagr-settings',
+			GEOTAGR_PLUGIN_URL . 'build/settings.css',
+			array(),
+			$asset['version']
+		);
+	}
+
+	/**
+	 * Build an external link that announces it opens in a new tab.
+	 *
+	 * @param string $url  Destination URL.
+	 * @param string $text Link text.
+	 * @return string Escaped anchor markup.
+	 */
+	private static function external_link( string $url, string $text ): string {
+		return sprintf(
+			'<a href="%1$s" target="_blank" rel="noopener">%2$s<span class="screen-reader-text"> %3$s</span></a>',
+			esc_url( $url ),
+			esc_html( $text ),
+			esc_html__( '(opens in a new tab)', 'geotagr' )
 		);
 	}
 
@@ -185,10 +244,12 @@ class Settings {
 		$types = get_post_types( array( 'public' => true ), 'objects' );
 		unset( $types['attachment'] );
 
+		echo '<fieldset><legend class="screen-reader-text">' . esc_html__( 'Enable GeoTagr on', 'geotagr' ) . '</legend>';
+
 		foreach ( $types as $type ) {
 			$checked = in_array( $type->name, (array) $saved, true );
 			printf(
-				'<label style="display:block;margin-bottom:4px"><input type="checkbox" name="%s[allowed_post_types][]" value="%s"%s> %s</label>',
+				'<label class="geotagr-post-type-option"><input type="checkbox" name="%s[allowed_post_types][]" value="%s"%s> %s</label>',
 				esc_attr( self::OPTION ),
 				esc_attr( $type->name ),
 				checked( $checked, true, false ),
@@ -196,6 +257,7 @@ class Settings {
 			);
 		}
 
+		echo '</fieldset>';
 		echo '<p class="description">' . esc_html__( 'GeoTagr metabox and block editor panel will appear on the selected post types.', 'geotagr' ) . '</p>';
 	}
 
@@ -242,101 +304,87 @@ class Settings {
 	 */
 	public function render_api_key_field(): void {
 		$saved = self::get( 'geocoding_api_key', '' );
+		$kses  = array(
+			'a'    => array(
+				'href'   => array(),
+				'target' => array(),
+				'rel'    => array(),
+			),
+			'span' => array( 'class' => array() ),
+		);
 		printf(
-			'<input type="text" id="geotagr-api-key" name="%s[geocoding_api_key]" value="%s" class="regular-text">',
+			'<input type="text" id="geotagr-api-key" name="%s[geocoding_api_key]" value="%s" class="regular-text" aria-describedby="geotagr-api-key-description">',
 			esc_attr( self::OPTION ),
 			esc_attr( $saved )
 		);
 		?>
-		<p class="description">
+		<p class="description" id="geotagr-api-key-description">
 			<?php esc_html_e( 'Required when using Google or Mapbox. Stored in plain text and output on admin pages — restrict the key by HTTP referrer to your site domain.', 'geotagr' ); ?>
 		</p>
 
-		<div id="geotagr-key-instructions-google" class="geotagr-key-instructions" style="display:none;margin-top:8px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1;">
+		<div id="geotagr-key-instructions-google" class="geotagr-key-instructions" hidden>
 			<strong><?php esc_html_e( 'Getting a Google Maps API key:', 'geotagr' ); ?></strong>
-			<ol style="margin:6px 0 0 1.2em;padding:0;">
+			<ol>
 				<li>
 				<?php
 				echo wp_kses(
-					__( 'Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> and create or select a project.', 'geotagr' ),
-					array(
-						'a' => array(
-							'href'   => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-					)
+					sprintf(
+						/* translators: %s: link to the Google Cloud Console. */
+						__( 'Go to the %s and create or select a project.', 'geotagr' ),
+						self::external_link( 'https://console.cloud.google.com/', __( 'Google Cloud Console', 'geotagr' ) )
+					),
+					$kses
 				);
 				?>
-					</li>
-				<li><?php esc_html_e( 'Enable the Places API (for name lookup) and Geocoding API (for address lookup) under APIs &amp; Services › Library.', 'geotagr' ); ?></li>
+				</li>
+				<li><?php esc_html_e( 'Enable the Places API (New) (for name lookup) and Geocoding API (for address lookup) under APIs & Services › Library.', 'geotagr' ); ?></li>
 				<li>
 				<?php
 				echo wp_kses(
-					__( 'Create a key under <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">APIs &amp; Services › Credentials</a>.', 'geotagr' ),
-					array(
-						'a' => array(
-							'href'   => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-					)
+					sprintf(
+						/* translators: %s: link to the Google Cloud credentials page. */
+						__( 'Create a key under %s.', 'geotagr' ),
+						self::external_link( 'https://console.cloud.google.com/apis/credentials', __( 'APIs & Services › Credentials', 'geotagr' ) )
+					),
+					$kses
 				);
 				?>
-					</li>
+				</li>
 				<li><?php esc_html_e( 'Restrict the key to HTTP referrers and add your site\'s domain.', 'geotagr' ); ?></li>
 			</ol>
 		</div>
 
-		<div id="geotagr-key-instructions-mapbox" class="geotagr-key-instructions" style="display:none;margin-top:8px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1;">
+		<div id="geotagr-key-instructions-mapbox" class="geotagr-key-instructions" hidden>
 			<strong><?php esc_html_e( 'Getting a Mapbox access token:', 'geotagr' ); ?></strong>
-			<ol style="margin:6px 0 0 1.2em;padding:0;">
+			<ol>
 				<li>
 				<?php
 				echo wp_kses(
-					__( 'Sign up or log in at <a href="https://account.mapbox.com/" target="_blank" rel="noopener">mapbox.com</a>.', 'geotagr' ),
-					array(
-						'a' => array(
-							'href'   => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-					)
+					sprintf(
+						/* translators: %s: link to mapbox.com. */
+						__( 'Sign up or log in at %s.', 'geotagr' ),
+						self::external_link( 'https://account.mapbox.com/', 'mapbox.com' )
+					),
+					$kses
 				);
 				?>
-					</li>
+				</li>
 				<li>
 				<?php
 				echo wp_kses(
-					__( 'Go to <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener">Access Tokens</a> and click "Create a token".', 'geotagr' ),
-					array(
-						'a' => array(
-							'href'   => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-					)
+					sprintf(
+						/* translators: %s: link to the Mapbox access tokens page. */
+						__( 'Go to %s and click "Create a token".', 'geotagr' ),
+						self::external_link( 'https://account.mapbox.com/access-tokens/', __( 'Access Tokens', 'geotagr' ) )
+					),
+					$kses
 				);
 				?>
-					</li>
+				</li>
 				<li><?php esc_html_e( 'Under "Token restrictions", add your site\'s URL to the Allowed URLs list.', 'geotagr' ); ?></li>
-				<li><?php esc_html_e( 'Ensure the token has the "styles:tiles" and "geocoding" scopes (the default public token works for geocoding).', 'geotagr' ); ?></li>
+				<li><?php esc_html_e( 'The default public token works for geocoding. Mapbox no longer returns place names from the Geocoding API, so only the address is filled in.', 'geotagr' ); ?></li>
 			</ol>
 		</div>
-
-		<script>
-		( function () {
-			var select = document.getElementById( 'geotagr-provider' );
-			var panels = document.querySelectorAll( '.geotagr-key-instructions' );
-			function update() {
-				panels.forEach( function ( el ) { el.style.display = 'none'; } );
-				var target = document.getElementById( 'geotagr-key-instructions-' + select.value );
-				if ( target ) { target.style.display = 'block'; }
-			}
-			select.addEventListener( 'change', update );
-			update();
-		} )();
-		</script>
 		<?php
 	}
 
