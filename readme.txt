@@ -15,6 +15,17 @@ Attach geographic location metadata to any post.
 
 GeoTagr lets you attach geographic coordinates, a place name, and a formatted address to any post. It provides a block editor sidebar panel and a classic editor metabox, both with an interactive Leaflet map. Geocoding is handled by your choice of Nominatim (free, no key required), Google Places, or Mapbox.
 
+== External services ==
+
+GeoTagr sends data to third-party services only when an editor looks up a location while writing a post. No visitor data is sent anywhere.
+
+* **OpenStreetMap Nominatim** (default provider) — the address or coordinates being looked up are sent from the editor's browser to nominatim.openstreetmap.org, which also receives the browser's IP address. [Usage policy](https://operations.osmfoundation.org/policies/nominatim/) · [Privacy policy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
+* **OpenStreetMap tiles** — the editor's map preview loads tiles from tile.openstreetmap.org, which receives the browser's IP address. [Tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
+* **Google Maps Platform** (optional) — lookups are sent from your server to places.googleapis.com and maps.googleapis.com with your API key; the editor's browser never contacts Google. [Terms](https://cloud.google.com/maps-platform/terms) · [Privacy policy](https://policies.google.com/privacy)
+* **Mapbox** (optional) — lookups are sent from the editor's browser to api.mapbox.com with your public access token. [Terms](https://www.mapbox.com/legal/tos) · [Privacy policy](https://www.mapbox.com/legal/privacy)
+
+Suggested privacy-policy text is added to Settings → Privacy → Policy Guide.
+
 == Installation ==
 
 1. Upload the plugin files to `/wp-content/plugins/geotagr`.

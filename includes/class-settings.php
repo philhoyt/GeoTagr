@@ -167,6 +167,21 @@ class Settings {
 	}
 
 	/**
+	 * Register suggested privacy policy text (Settings › Privacy › Policy Guide).
+	 */
+	public static function add_privacy_policy_content(): void {
+		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
+			return;
+		}
+
+		$content  = '<p class="privacy-policy-tutorial">' . esc_html__( 'GeoTagr attaches a location to posts. Review this text and adjust it for the geocoding provider you use.', 'geotagr' ) . '</p>';
+		$content .= '<p>' . esc_html__( 'For posts that have been tagged with a location, this site stores latitude and longitude coordinates, a place name, and a formatted address with the post. These values may be visible to anyone who can read the post and are available through the site\'s REST API. A location term containing the same coordinates is also created for grouping posts by place.', 'geotagr' ) . '</p>';
+		$content .= '<p>' . esc_html__( 'When an editor looks up a location, the address or coordinates they enter are sent to a third-party geocoding service, which also receives the editor\'s IP address when called from the browser. Depending on configuration this is OpenStreetMap Nominatim (openstreetmap.org), Mapbox (mapbox.com), or Google Maps Platform (google.com); the Google service is called from this server rather than the browser. The editor\'s map preview loads map tiles from OpenStreetMap, which receives the editor\'s IP address. No visitor data is sent to these services.', 'geotagr' ) . '</p>';
+
+		wp_add_privacy_policy_content( __( 'GeoTagr', 'geotagr' ), wp_kses_post( $content ) );
+	}
+
+	/**
 	 * Flag a rewrite flush when the taxonomy visibility changes.
 	 *
 	 * Hooked to add_option_/update_option_geotagr_settings. The flush itself

@@ -40,6 +40,7 @@ class GeoTagger {
 			1
 		);
 
+		add_action( 'admin_init', array( Settings::class, 'add_privacy_policy_content' ) );
 		add_action( 'admin_menu', array( $settings, 'register' ) );
 		add_action( 'admin_enqueue_scripts', array( $settings, 'enqueue_assets' ) );
 		add_action( 'rest_api_init', array( $proxy, 'register' ) );
