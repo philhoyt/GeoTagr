@@ -148,4 +148,46 @@ class Test_Settings extends WP_UnitTestCase {
 	public function test_get_returns_default_provider(): void {
 		$this->assertSame( 'nominatim', Settings::get( 'geocoding_provider' ) );
 	}
+
+	/**
+	 * REST visibility defaults to private when no option is saved.
+	 */
+	public function test_get_returns_default_rest_visibility(): void {
+		$this->assertSame( 'private', Settings::get( 'rest_location_visibility' ) );
+	}
+
+	/**
+	 * Unknown or missing visibility values sanitize to private.
+	 */
+	public function test_sanitize_rejects_unknown_rest_visibility(): void {
+		$settings = new Settings();
+
+		$junk = $settings->sanitize(
+			array(
+				'allowed_post_types'       => array( 'post' ),
+				'rest_location_visibility' => 'public',
+			)
+		);
+		$this->assertSame( 'private', $junk['rest_location_visibility'] );
+
+		$missing = $settings->sanitize( array( 'allowed_post_types' => array( 'post' ) ) );
+		$this->assertSame( 'private', $missing['rest_location_visibility'] );
+	}
+
+	/**
+	 * Each valid visibility mode round-trips through sanitize().
+	 */
+	public function test_sanitize_preserves_valid_rest_visibility(): void {
+		$settings = new Settings();
+
+		foreach ( Settings::VISIBILITY_MODES as $mode ) {
+			$result = $settings->sanitize(
+				array(
+					'allowed_post_types'       => array( 'post' ),
+					'rest_location_visibility' => $mode,
+				)
+			);
+			$this->assertSame( $mode, $result['rest_location_visibility'], "Failed for mode: {$mode}" );
+		}
+	}
 }
