@@ -23,6 +23,36 @@ class Test_Settings_Integration extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Administrators see a Settings link before Deactivate on the Plugins screen.
+	 */
+	public function test_plugin_action_links_prepend_settings_link_for_admins(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$links = apply_filters(
+			'plugin_action_links_' . plugin_basename( GEOTAGR_PLUGIN_FILE ),
+			array( 'deactivate' => '<a href="#">Deactivate</a>' )
+		);
+
+		$this->assertCount( 2, $links );
+		$this->assertStringContainsString( 'options-general.php?page=geotagr-settings', reset( $links ) );
+		$this->assertSame( 'deactivate', array_key_last( $links ) );
+	}
+
+	/**
+	 * Users without manage_options do not get the Settings link.
+	 */
+	public function test_plugin_action_links_unchanged_without_manage_options(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$links = apply_filters(
+			'plugin_action_links_' . plugin_basename( GEOTAGR_PLUGIN_FILE ),
+			array( 'deactivate' => '<a href="#">Deactivate</a>' )
+		);
+
+		$this->assertSame( array( 'deactivate' ), array_keys( $links ) );
+	}
+
+	/**
 	 * The geo_tagr_allowed_post_types filter returns the saved post types.
 	 */
 	public function test_allowed_post_types_filter_returns_option_value(): void {

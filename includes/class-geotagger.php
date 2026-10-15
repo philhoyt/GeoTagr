@@ -43,6 +43,7 @@ class GeoTagger {
 		add_action( 'admin_init', array( Settings::class, 'add_privacy_policy_content' ) );
 		add_action( 'admin_menu', array( $settings, 'register' ) );
 		add_action( 'admin_enqueue_scripts', array( $settings, 'enqueue_assets' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( GEOTAGR_PLUGIN_FILE ), array( Settings::class, 'add_action_links' ) );
 		add_action( 'rest_api_init', array( $proxy, 'register' ) );
 
 		add_filter(
