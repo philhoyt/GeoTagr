@@ -5,7 +5,7 @@ Tags: geolocation, geocoding, map, metadata, location
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.8.0
+Stable tag: 0.9.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,10 @@ Suggested privacy-policy text is added to Settings → Privacy → Policy Guide.
 Anonymous REST API reads of latitude, longitude, and address now return 0, 0 and an empty address by default. A value of 0, 0 means redacted or absent, not a real coordinate; do not plot it. Logged-in users who can edit posts, including application-password clients, still receive stored values; the gate is role-level, so any contributor-and-above account reads coordinates on every post. Headless front ends, feeds, or map widgets that read coordinates anonymously need Settings → GeoTagr → Public API visibility set to "Rounded" or "Exact" (Exact restores the previous output). The place name stays public in every mode and can be a precise business or building name. Purge page and object caches after upgrading.
 
 == Changelog ==
+
+= 0.9.0 =
+* Add: Settings link in the GeoTagr row on the Plugins screen.
+* Change: The geocoding API key field is masked, with a Show/Hide button to reveal it while editing.
 
 = 0.8.0 =
 * Change: Latitude, longitude, and address are hidden from REST API readers who cannot edit posts. See the upgrade notice.
