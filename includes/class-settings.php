@@ -35,7 +35,7 @@ class Settings {
 	private const KEYED_PROVIDERS = array( 'google', 'mapbox' );
 
 	/**
-	 * Valid rest_location_visibility values (see Meta::prepare_rest_value()).
+	 * Valid rest_location_visibility values (see Meta::gate_rest_response()).
 	 *
 	 * @var string[]
 	 */

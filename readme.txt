@@ -5,7 +5,7 @@ Tags: geolocation, geocoding, map, metadata, location
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.9.0
+Stable tag: 0.10.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,10 +36,21 @@ Suggested privacy-policy text is added to Settings → Privacy → Policy Guide.
 
 == Upgrade Notice ==
 
+= 0.10.0 =
+Location access is now decided per post. Users who can edit posts but not a particular post (Authors, Contributors, application-password clients with those roles) now get that post's location in the Public API visibility shape instead of exact values, and can no longer write location meta to it. Sites that rely on the old behaviour can restore it with the geo_tagr_rest_location_visibility filter, which now receives the post. Purge page and object caches after upgrading.
+
 = 0.8.0 =
 Anonymous REST API reads of latitude, longitude, and address now return 0, 0 and an empty address by default. A value of 0, 0 means redacted or absent, not a real coordinate; do not plot it. Logged-in users who can edit posts, including application-password clients, still receive stored values; the gate is role-level, so any contributor-and-above account reads coordinates on every post. Headless front ends, feeds, or map widgets that read coordinates anonymously need Settings → GeoTagr → Public API visibility set to "Rounded" or "Exact" (Exact restores the previous output). The place name stays public in every mode and can be a precise business or building name. Purge page and object caches after upgrading.
 
 == Changelog ==
+
+= 0.10.0 =
+* Security: Writing location meta (`_geo_tagr_lat`, `_geo_tagr_lng`, `_geo_tagr_place`, `_geo_tagr_address`) requires permission to edit that post, not just `edit_posts`.
+* Security: Exact coordinates and the address in the REST API go only to users who can edit that post. Everyone else, including users who can edit other posts, gets the Public API visibility shape. Collections, `_fields` responses and create/update responses are gated the same way.
+* Add: Post types with their own capabilities (for example a custom `edit_events`) work for users without `edit_posts`: their location meta saves, and they can use the Google address search.
+* Add: `geo_tagr_can_geocode` filter decides who may use the Google geocoding proxy; by default anyone who can edit posts or the posts of a GeoTagr-enabled post type.
+* Change: `geo_tagr_rest_location_visibility` receives the post as a fourth argument and is no longer called for users who can edit the post.
+* Note: The location taxonomy is unchanged; with "Public taxonomy" on, its term slugs still encode coordinates to four decimals, regardless of the per-post gate.
 
 = 0.9.0 =
 * Add: Settings link in the GeoTagr row on the Plugins screen.
