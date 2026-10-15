@@ -34,6 +34,45 @@ class GeocodeProxy {
 	private const CACHE_PREFIX = 'geotagr_geo_';
 
 	/**
+	 * Whether the current user may call the proxy.
+	 *
+	 * Anyone who can edit posts, or the posts of any post type GeoTagr is
+	 * enabled for: a post type with its own capabilities (e.g.
+	 * `edit_events`) needs address search without holding `edit_posts`.
+	 * On a site where GeoTagr only covers `post`, this is `edit_posts`.
+	 *
+	 * @since 0.10.0 Was `edit_posts` only.
+	 *
+	 * @return bool
+	 */
+	public static function can_geocode(): bool {
+		$allowed = current_user_can( 'edit_posts' );
+
+		if ( ! $allowed ) {
+			foreach ( (array) apply_filters( 'geo_tagr_allowed_post_types', array( 'post' ) ) as $post_type ) {
+				$object = get_post_type_object( (string) $post_type );
+				if ( $object && current_user_can( $object->cap->edit_posts ) ) {
+					$allowed = true;
+					break;
+				}
+			}
+		}
+
+		/**
+		 * Filters whether the current user may use the geocoding proxy.
+		 *
+		 * The proxy spends the site's Google API quota, so sites can narrow
+		 * (or widen) who reaches it.
+		 *
+		 * @since 0.10.0
+		 *
+		 * @param bool $allowed Whether the user can edit posts of an allowed post type.
+		 * @param int  $user_id Current user ID.
+		 */
+		return (bool) apply_filters( 'geo_tagr_can_geocode', $allowed, get_current_user_id() );
+	}
+
+	/**
 	 * Register the REST route.
 	 */
 	public function register(): void {
@@ -43,7 +82,7 @@ class GeocodeProxy {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle' ),
-				'permission_callback' => static fn(): bool => current_user_can( 'edit_posts' ),
+				'permission_callback' => array( self::class, 'can_geocode' ),
 				'args'                => array(
 					'type'  => array(
 						'required'          => true,
