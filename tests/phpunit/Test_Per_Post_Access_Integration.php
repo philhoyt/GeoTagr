@@ -343,6 +343,19 @@ class Test_Per_Post_Access_Integration extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The meta permission answers for the user asked about, whoever is logged in.
+	 */
+	public function test_meta_permission_is_checked_for_the_user_asked_about(): void {
+		$own = $this->tagged( 'event', $this->owner );
+
+		foreach ( array( 0, $this->peer, $this->owner ) as $current ) {
+			wp_set_current_user( $current );
+			$this->assertTrue( user_can( $this->owner, 'edit_post_meta', $own, '_geo_tagr_lat' ), "owner, current user $current" );
+			$this->assertFalse( user_can( $this->peer, 'edit_post_meta', $own, '_geo_tagr_lat' ), "peer, current user $current" );
+		}
+	}
+
+	/**
 	 * The proxy admits anyone who can edit an allowed post type.
 	 */
 	public function test_proxy_allows_users_who_can_edit_an_allowed_post_type(): void {

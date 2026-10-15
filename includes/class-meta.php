@@ -99,8 +99,9 @@ class Meta {
 								: $config['sanitize'],
 						// Per post, not `edit_posts`: post types with their own
 						// capabilities work, and editing one post never grants
-						// writing location data onto another.
-						'auth_callback'     => static fn( $allowed, $meta_key, $object_id ): bool => current_user_can( 'edit_post', (int) $object_id ),
+						// writing location data onto another. Checked for the
+						// user being asked about, not the current user.
+						'auth_callback'     => static fn( $allowed, $meta_key, $object_id, $user_id = null ): bool => user_can( null === $user_id ? get_current_user_id() : (int) $user_id, 'edit_post', (int) $object_id ),
 					)
 				);
 			}
