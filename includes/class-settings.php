@@ -134,6 +134,31 @@ class Settings {
 	}
 
 	/**
+	 * Prepend a Settings link to the plugin's row on the Plugins screen.
+	 *
+	 * Hooked to plugin_action_links_{basename}. The link appears before the
+	 * Deactivate link, matching core's convention for plugin settings links.
+	 *
+	 * @param string[] $links Existing action links.
+	 * @return string[]
+	 */
+	public static function add_action_links( array $links ): array {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return $links;
+		}
+
+		$settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( admin_url( 'options-general.php?page=' . self::PAGE ) ),
+			esc_html__( 'Settings', 'geotagr' )
+		);
+
+		array_unshift( $links, $settings_link );
+
+		return $links;
+	}
+
+	/**
 	 * Enqueue the settings page script and styles on that page only.
 	 *
 	 * @param string $hook Current admin page hook suffix.
