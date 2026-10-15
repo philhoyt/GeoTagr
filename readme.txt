@@ -5,7 +5,7 @@ Tags: geolocation, geocoding, map, metadata, location
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.10.0
+Stable tag: 0.10.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ Location access is now decided per post. Users who can edit posts but not a part
 Anonymous REST API reads of latitude, longitude, and address now return 0, 0 and an empty address by default. A value of 0, 0 means redacted or absent, not a real coordinate; do not plot it. Logged-in users who can edit posts, including application-password clients, still receive stored values; the gate is role-level, so any contributor-and-above account reads coordinates on every post. Headless front ends, feeds, or map widgets that read coordinates anonymously need Settings → GeoTagr → Public API visibility set to "Rounded" or "Exact" (Exact restores the previous output). The place name stays public in every mode and can be a precise business or building name. Purge page and object caches after upgrading.
 
 == Changelog ==
+
+= 0.10.1 =
+* Fix: The location meta permission is checked for the user being asked about, not the logged-in user, so `user_can( $user, 'edit_post_meta', … )` from WP-CLI, cron or other plugins gives the right answer. Saves from the editor and REST were already correct.
 
 = 0.10.0 =
 * Security: Writing location meta (`_geo_tagr_lat`, `_geo_tagr_lng`, `_geo_tagr_place`, `_geo_tagr_address`) requires permission to edit that post, not just `edit_posts`.
