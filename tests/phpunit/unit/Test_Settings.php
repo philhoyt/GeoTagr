@@ -143,6 +143,23 @@ class Test_Settings extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The API key renders as a masked field with autocomplete off and a reveal toggle.
+	 */
+	public function test_api_key_field_is_masked_with_toggle(): void {
+		update_option( 'geotagr_settings', array( 'geocoding_api_key' => 'pk.secret' ) );
+
+		ob_start();
+		( new Settings() )->render_api_key_field();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'type="password"', $html );
+		$this->assertStringContainsString( 'autocomplete="off"', $html );
+		$this->assertStringContainsString( 'value="pk.secret"', $html );
+		$this->assertStringContainsString( 'geotagr-api-key-toggle', $html );
+		$this->assertStringContainsString( 'aria-controls="geotagr-api-key"', $html );
+	}
+
+	/**
 	 * Default provider is nominatim when no option is saved.
 	 */
 	public function test_get_returns_default_provider(): void {

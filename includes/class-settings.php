@@ -184,6 +184,8 @@ class Settings {
 			true
 		);
 
+		wp_set_script_translations( 'geo-tagr-settings', 'geotagr', GEOTAGR_PLUGIN_DIR . 'languages' );
+
 		wp_enqueue_style(
 			'geo-tagr-settings',
 			GEOTAGR_PLUGIN_URL . 'build/settings.css',
@@ -394,14 +396,21 @@ class Settings {
 			),
 			'span' => array( 'class' => array() ),
 		);
+		echo '<div class="geotagr-api-key-field">';
 		printf(
-			'<input type="text" id="geotagr-api-key" name="%s[geocoding_api_key]" value="%s" class="regular-text" aria-describedby="geotagr-api-key-description">',
+			'<input type="password" id="geotagr-api-key" name="%s[geocoding_api_key]" value="%s" class="regular-text" autocomplete="off" spellcheck="false" aria-describedby="geotagr-api-key-description">',
 			esc_attr( self::OPTION ),
 			esc_attr( $saved )
 		);
+		printf(
+			'<button type="button" class="button geotagr-api-key-toggle" aria-controls="geotagr-api-key" aria-label="%s">%s</button>',
+			esc_attr__( 'Show API key', 'geotagr' ),
+			esc_html__( 'Show', 'geotagr' )
+		);
+		echo '</div>';
 		?>
 		<p class="description" id="geotagr-api-key-description">
-			<?php esc_html_e( 'Required when using Google or Mapbox. Stored in plain text and output on admin pages — restrict the key by HTTP referrer to your site domain.', 'geotagr' ); ?>
+			<?php esc_html_e( 'Required when using Google or Mapbox. Stored in plain text; a Mapbox token is also sent to the browser for editors. Restrict the key by HTTP referrer to your site domain.', 'geotagr' ); ?>
 		</p>
 
 		<div id="geotagr-key-instructions-google" class="geotagr-key-instructions" hidden>
