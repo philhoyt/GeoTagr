@@ -28,9 +28,9 @@
     "test:php": "wp-env run tests-cli --env-cwd \"wp-content/plugins/$(basename \"$PWD\")\" -- vendor/bin/phpunit"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "author": "philhoyt",
+  "license": "GPL-2.0-or-later",
+  "description": "Attach geographic location metadata to any post.",
   "devDependencies": {
     "@babel/core": "^7.25.7",
     "@playwright/test": "^1.64.1",
