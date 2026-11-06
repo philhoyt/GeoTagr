@@ -38,7 +38,10 @@ $geotagr_update_checker = PucFactory::buildUpdateChecker(
 // Only the plugin zip; the release also carries readme.txt as an asset.
 $geotagr_vcs_api = $geotagr_update_checker->getVcsApi();
 if ( method_exists( $geotagr_vcs_api, 'enableReleaseAssets' ) ) {
-	$geotagr_vcs_api->enableReleaseAssets( '/\.zip$/i' );
+	// REQUIRE_RELEASE_ASSETS: a release without a matching zip reports no update
+	// instead of falling back to GitHub's source archive, which installs as
+	// <Repo>-<tag>/ and breaks the plugin directory.
+	$geotagr_vcs_api->enableReleaseAssets( '/\.zip$/i', $geotagr_vcs_api::REQUIRE_RELEASE_ASSETS );
 }
 
 require_once GEOTAGR_PLUGIN_DIR . 'includes/class-locationnameblock.php';
